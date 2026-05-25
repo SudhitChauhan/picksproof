@@ -1,3 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: Arial, Helvetica, sans-serif;
+  --color-admin-ink: oklch(0.2 0.025 145);
+  --color-admin-muted: oklch(0.48 0.03 145);
+  --color-admin-line: oklch(0.88 0.025 83);
+  --color-admin-surface: oklch(0.99 0.018 83);
+  --color-admin-accent: oklch(0.58 0.14 151);
+}
+
 :root {
   --background: #f7f3ec;
   --surface: #fffaf2;
@@ -11,6 +22,20 @@
   --orange: #f59f00;
   --navy: #102a43;
   --shadow: 0 24px 70px rgba(16, 42, 67, 0.12);
+}
+
+@keyframes navigation-loader {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  50% {
+    transform: translateX(140%);
+  }
+
+  100% {
+    transform: translateX(360%);
+  }
 }
 
 * {
