@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { Bookmark, Lock } from "lucide-react";
 import { WishlistGrid } from "@/app/(user)/wishlist/WishlistGrid";
-import { products } from "@/lib/data";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = {
@@ -36,8 +35,6 @@ export default async function WishlistPage() {
     redirect("/login");
   }
 
-  const savedProducts = products.slice(0, 3);
-
   return (
     <main className="min-h-[calc(100vh-12rem)] bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_32rem)] px-4 py-10 dark:bg-slate-950">
       <section className="mx-auto max-w-7xl">
@@ -54,12 +51,9 @@ export default async function WishlistPage() {
               Keep a shortlist of products you want to revisit, compare, or buy later.
             </p>
           </div>
-          <div className="rounded-3xl border border-admin-line bg-white p-5 text-sm text-admin-muted shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-            Showing mock saved products until the wishlist database table is added.
-          </div>
         </div>
 
-        <WishlistGrid initialProducts={savedProducts} />
+        <WishlistGrid initialProducts={[]} />
       </section>
     </main>
   );

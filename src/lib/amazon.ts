@@ -38,25 +38,6 @@ export type AmazonProductResult = {
   url: string;
 };
 
-const mockAmazonResults: AmazonProductResult[] = [
-  {
-    asin: "B0MOCKASTER",
-    title: "Aster Pro 14 Laptop",
-    brand: "Aster",
-    price: "$1,399",
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80",
-    url: "https://www.amazon.com/?tag=yourtag-20"
-  },
-  {
-    asin: "B0MOCKNOVA",
-    title: "Nova Lite 13 Laptop",
-    brand: "Nova",
-    price: "$749",
-    image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=900&q=80",
-    url: "https://www.amazon.com/?tag=yourtag-20"
-  }
-];
-
 function hmac(key: string | Buffer, value: string) {
   return crypto.createHmac("sha256", key).update(value, "utf8").digest();
 }
@@ -93,7 +74,7 @@ export async function searchAmazonProducts(keywords: string): Promise<AmazonProd
   const region = process.env.AMAZON_PAAPI_REGION ?? "us-east-1";
 
   if (!accessKey || !secretKey || !partnerTag) {
-    return mockAmazonResults;
+    return [];
   }
 
   const service = "ProductAdvertisingAPI";
