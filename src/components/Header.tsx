@@ -1,7 +1,29 @@
 import Link from "next/link";
 import { categories } from "@/lib/data";
+import { isAdminUser } from "@/lib/supabase/auth";
+import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export function Header() {
+async function getHeaderUser() {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    return session?.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function Header() {
+  const user = await getHeaderUser();
+  const isAdmin = isAdminUser(user);
+
   return (
     <header className="site-header">
       <Link className="logo" href="/">
@@ -14,6 +36,18 @@ export function Header() {
           </Link>
         ))}
         <Link href="/compare/aster-pro-14-vs-nova-lite-13">Compare</Link>
+        {user ? (
+          <>
+            <Link href="/wishlist">Wishlist</Link>
+            <Link href="/profile">Profile</Link>
+            {isAdmin ? <Link href="/products">Products</Link> : null}
+          </>
+        ) : (
+          <>
+            <Link href="/login">Login</Link>
+            <Link href="/register">Register</Link>
+          </>
+        )}
       </nav>
     </header>
   );

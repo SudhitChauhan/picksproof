@@ -18,7 +18,7 @@ Copy `.env.example` to `.env.local` and fill in your Amazon Product Advertising 
 ```bash
 AMAZON_ACCESS_KEY=
 AMAZON_SECRET_KEY=
-AMAZON_PARTNER_TAG=yourtag-20
+AMAZON_PARTNER_TAG=sudhittech75-21
 AMAZON_PARTNER_TYPE=Associates
 AMAZON_MARKETPLACE=www.amazon.com
 AMAZON_PAAPI_HOST=webservices.amazon.com

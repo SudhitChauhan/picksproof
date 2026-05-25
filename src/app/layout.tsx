@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GlobalNavigationLoader } from "@/components/GlobalNavigationLoader";
 import { Header } from "@/components/Header";
 import "./globals.css";
 
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <GlobalNavigationLoader />
         <Header />
         {children}
         <footer className="site-footer">
