@@ -44,15 +44,21 @@ export async function createProductAction(values: ProductFormValues): Promise<Cr
       data: { user },
       error: userError
     } = await supabase.auth.getUser();
+    const {
+      data: { session }
+    } = user ? { data: { session: null } } : await supabase.auth.getSession();
+    const currentUser = user ?? session?.user ?? null;
 
-    if (userError || !user) {
+    if (!currentUser) {
       return {
         ok: false,
-        message: "You must be signed in to create products."
+        message: userError?.message
+          ? `Your sign-in session could not be verified: ${userError.message}`
+          : "You must be signed in to create products."
       };
     }
 
-    if (!isAdminUser(user)) {
+    if (!isAdminUser(currentUser)) {
       return {
         ok: false,
         message: "Your account does not have admin access."

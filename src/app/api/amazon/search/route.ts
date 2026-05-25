@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const results = await searchAmazonProducts(query);
     return NextResponse.json({
       query,
-      source: process.env.AMAZON_ACCESS_KEY ? "amazon-paapi" : "mock",
+      source: process.env.AMAZON_ACCESS_KEY ? "amazon-paapi" : "unconfigured",
       results
     });
   } catch (error) {

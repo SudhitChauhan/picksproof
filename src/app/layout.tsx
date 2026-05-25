@@ -22,7 +22,7 @@ export default function RootLayout({
         <footer className="site-footer">
           <strong>PickProof</strong>
           <span>
-            As an Amazon Associate, this demo earns from qualifying purchases. Prices and availability can change.
+            As an Amazon Associate, PickProof earns from qualifying purchases. Prices and availability can change.
           </span>
         </footer>
       </body>

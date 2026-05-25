@@ -90,13 +90,13 @@ export function ProductForm() {
         <div className="grid gap-5 md:grid-cols-2">
           <label className={labelClass}>
             Title
-            <input className={inputClass} {...register("title")} placeholder="Aster Pro 14" />
+            <input className={inputClass} {...register("title")} placeholder="Product name" />
             {errors.title ? <p className={errorClass}>{errors.title.message}</p> : null}
           </label>
 
           <label className={labelClass}>
             Brand
-            <input className={inputClass} {...register("brand")} placeholder="Aster" />
+            <input className={inputClass} {...register("brand")} placeholder="Brand name" />
             {errors.brand ? <p className={errorClass}>{errors.brand.message}</p> : null}
           </label>
 

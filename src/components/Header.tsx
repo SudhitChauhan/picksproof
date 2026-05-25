@@ -35,7 +35,6 @@ export async function Header() {
             {category.title.replace("Best ", "")}
           </Link>
         ))}
-        <Link href="/compare/aster-pro-14-vs-nova-lite-13">Compare</Link>
         {user ? (
           <>
             <Link href="/wishlist">Wishlist</Link>

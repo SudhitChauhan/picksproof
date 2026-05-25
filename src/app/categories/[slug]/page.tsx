@@ -65,8 +65,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             </div>
           ) : (
             <div className="empty-state">
-              <h2>Products are coming soon</h2>
-              <p>This category is ready for Amazon API results or manually curated picks.</p>
+              <h2>No products published yet</h2>
+              <p>Add real products in the admin dashboard to populate this category.</p>
             </div>
           )}
 
@@ -78,7 +78,6 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
               battery life, support, and long-term value. The best product is rarely the one with every premium feature;
               it is the one that solves your main need without expensive compromises.
             </p>
-            <Link href="/compare/aster-pro-14-vs-nova-lite-13">Compare two top picks</Link>
           </section>
         </div>
       </section>

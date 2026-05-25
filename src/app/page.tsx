@@ -22,10 +22,10 @@ export default function Home() {
           </form>
         </div>
         <div className="hero-panel">
-          <h2>Today&apos;s confidence score</h2>
-          <strong>9.2/10</strong>
-          <p>Aster Pro 14 leads our laptop guide for battery life and display quality.</p>
-          <Link href="/reviews/aster-pro-14">See the review</Link>
+          <h2>Admin-ready catalog</h2>
+          <strong>{topProducts.length}</strong>
+          <p>Add real products from the admin dashboard to publish recommendations here.</p>
+          <Link href="/products">Manage products</Link>
         </div>
       </section>
 
@@ -49,11 +49,18 @@ export default function Home() {
           <span className="eyebrow">Curated picks</span>
           <h2>Today&apos;s Top Recommendations</h2>
         </div>
-        <div className="product-grid">
-          {topProducts.map((product, index) => (
-            <ProductCard product={product} topPick={index === 0} key={product.slug} />
-          ))}
-        </div>
+        {topProducts.length > 0 ? (
+          <div className="product-grid">
+            {topProducts.map((product, index) => (
+              <ProductCard product={product} topPick={index === 0} key={product.slug} />
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h3>No recommendations published yet</h3>
+            <p>Add real products in the admin dashboard to populate this section.</p>
+          </div>
+        )}
       </section>
 
       <section className="trust-section">

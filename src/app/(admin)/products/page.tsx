@@ -6,11 +6,27 @@ import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase
 
 type ProductRow = {
   id: string;
-  title: string;
-  category: string;
-  main_image_url: string;
-  global_score: number | string;
+  [key: string]: unknown;
 };
+
+function getTextField(product: ProductRow, keys: string[], fallback = "Untitled product") {
+  for (const key of keys) {
+    const value = product[key];
+
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
+function getScore(product: ProductRow) {
+  const value = product.global_score ?? product.score ?? product.rating;
+  const score = typeof value === "number" || typeof value === "string" ? Number(value) : NaN;
+
+  return Number.isFinite(score) ? score.toFixed(1) : "N/A";
+}
 
 async function getProducts() {
   if (!isSupabaseConfigured()) {
@@ -26,10 +42,16 @@ async function getProducts() {
     redirect("/unauthorized");
   }
 
-  const { data, error } = await supabase
+  let productsResult = await supabase
     .from("products")
-    .select("id,title,category,main_image_url,global_score")
+    .select("*")
     .order("created_at", { ascending: false });
+
+  if (productsResult.error?.message.includes("created_at")) {
+    productsResult = await supabase.from("products").select("*");
+  }
+
+  const { data, error } = productsResult;
 
   if (error) {
     throw new Error(error.message);
@@ -86,63 +108,73 @@ export default async function AdminProductsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product) => (
-                    <tr
-                      className="border-b border-admin-line last:border-b-0 dark:border-slate-800"
-                      key={product.id}
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-admin-line bg-white dark:border-slate-700 dark:bg-slate-950">
-                            {product.main_image_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                alt=""
-                                className="size-full object-cover"
-                                src={product.main_image_url}
-                              />
-                            ) : (
-                              <ImageIcon className="size-6 text-admin-muted" />
-                            )}
+                  {products.map((product) => {
+                    const title = getTextField(product, ["title", "name"]);
+                    const category = getTextField(
+                      product,
+                      ["category", "category_name", "categoryName"],
+                      "Uncategorized"
+                    );
+                    const imageUrl = getTextField(
+                      product,
+                      ["main_image_url", "image_url", "image", "thumbnail_url"],
+                      ""
+                    );
+
+                    return (
+                      <tr
+                        className="border-b border-admin-line last:border-b-0 dark:border-slate-800"
+                        key={product.id}
+                      >
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-admin-line bg-white dark:border-slate-700 dark:bg-slate-950">
+                              {imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img alt="" className="size-full object-cover" src={imageUrl} />
+                              ) : (
+                                <ImageIcon className="size-6 text-admin-muted" />
+                              )}
+                            </div>
+                            <div>
+                              <strong className="block text-base text-admin-ink dark:text-white">
+                                {title}
+                              </strong>
+                              <span className="text-sm text-admin-muted dark:text-slate-400">
+                                ID: {product.id.slice(0, 8)}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <strong className="block text-base text-admin-ink dark:text-white">
-                              {product.title}
-                            </strong>
-                            <span className="text-sm text-admin-muted dark:text-slate-400">
-                              ID: {product.id.slice(0, 8)}
-                            </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm font-bold text-admin-muted dark:text-slate-300">
+                          {category}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
+                            {getScore(product)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              className="inline-flex size-10 items-center justify-center rounded-full border border-admin-line text-admin-muted transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-400"
+                              type="button"
+                            >
+                              <Edit3 className="size-4" />
+                              <span className="sr-only">Edit {title}</span>
+                            </button>
+                            <button
+                              className="inline-flex size-10 items-center justify-center rounded-full border border-red-200 text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                              type="button"
+                            >
+                              <Trash2 className="size-4" />
+                              <span className="sr-only">Delete {title}</span>
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4 text-sm font-bold text-admin-muted dark:text-slate-300">
-                        {product.category}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-black text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-                          {Number(product.global_score).toFixed(1)}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            className="inline-flex size-10 items-center justify-center rounded-full border border-admin-line text-admin-muted transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-400"
-                            type="button"
-                          >
-                            <Edit3 className="size-4" />
-                            <span className="sr-only">Edit {product.title}</span>
-                          </button>
-                          <button
-                            className="inline-flex size-10 items-center justify-center rounded-full border border-red-200 text-red-600 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
-                            type="button"
-                          >
-                            <Trash2 className="size-4" />
-                            <span className="sr-only">Delete {product.title}</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

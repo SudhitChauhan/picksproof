@@ -9,7 +9,7 @@ export function FilterPanel({ category }: FilterPanelProps) {
     <aside className="filter-panel">
       <h2>Filter Products</h2>
       <p>Refine by the factors shoppers check before clicking through.</p>
-      {Object.entries(category.filters).map(([group, options]) => (
+      {Object.entries(category.filters).filter(([, options]) => options.length > 0).map(([group, options]) => (
         <fieldset key={group}>
           <legend>{group}</legend>
           {options.map((option) => (
