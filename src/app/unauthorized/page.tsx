@@ -1,38 +1,58 @@
 import Link from "next/link";
+import { ArrowLeft, ShieldOff } from "lucide-react";
 
-export const metadata = {
-  title: "Unauthorized - PickProof"
-};
+export const metadata = { title: "Unauthorized — PickProof" };
 
 export default function UnauthorizedPage() {
   return (
-    <main className="min-h-[calc(100vh-12rem)] bg-[radial-gradient(circle_at_top,rgba(194,65,50,0.12),transparent_30rem)] px-4 py-14 dark:bg-slate-950">
-      <section className="mx-auto max-w-3xl rounded-[2rem] border border-admin-line bg-admin-surface p-8 shadow-[0_24px_70px_rgba(16,42,67,0.12)] dark:border-slate-800 dark:bg-slate-900">
-        <span className="text-sm font-black uppercase tracking-[0.18em] text-red-700 dark:text-red-300">
-          Access restricted
-        </span>
-        <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-admin-ink dark:text-white md:text-6xl">
-          You do not have admin access.
-        </h1>
-        <p className="mt-5 max-w-2xl text-base leading-7 text-admin-muted dark:text-slate-400">
-          Admin pages require a Supabase Auth user with <code>app_metadata.role</code> set to{" "}
-          <code>admin</code>. Use a different account or return to PickProof.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700"
-            href="/"
-          >
-            Go Home
-          </Link>
-          <Link
-            className="rounded-full border border-admin-line px-6 py-3 text-sm font-black text-admin-ink transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-100"
-            href="/login?next=/products"
-          >
-            Sign In
-          </Link>
+    <div className="auth-page">
+      <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
+        {/* Icon */}
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: "50%",
+            background: "var(--canvas)",
+            border: "1px solid var(--line)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 24px",
+            color: "var(--slate)"
+          }}
+        >
+          <ShieldOff size={32} strokeWidth={1.4} />
         </div>
-      </section>
-    </main>
+
+        <p className="eyebrow" style={{ justifyContent: "center", marginBottom: 12 }}>Access Denied</p>
+
+        <div className="auth-card" style={{ textAlign: "left" }}>
+          <h1
+            style={{
+              fontSize: "1.6rem",
+              fontWeight: 500,
+              letterSpacing: "-0.02em",
+              margin: "0 0 10px",
+              color: "var(--ink)"
+            }}
+          >
+            Admin access required
+          </h1>
+          <p style={{ color: "var(--slate)", lineHeight: 1.7, margin: "0 0 28px" }}>
+            The page you tried to visit is restricted to admin users. If you believe this is an
+            error, contact the site owner to have your account upgraded.
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link className="btn-primary" href="/login" style={{ gap: 6 }}>
+              Sign in as admin
+            </Link>
+            <Link className="btn-outline" href="/" style={{ gap: 6 }}>
+              <ArrowLeft size={14} /> Go home
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

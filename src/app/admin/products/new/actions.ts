@@ -1,136 +1,155 @@
 "use server";
 
-import { productFormSchema, type ProductFormValues } from "@/lib/products/schema";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import {
+  editProductFormSchema,
+  productFormSchema,
+  type EditProductFormValues,
+  type ProductFormValues
+} from "@/lib/products/schema";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-type ProductInsertResult = {
-  id: string;
-};
-
-type CreateProductResult =
-  | {
-      ok: true;
-      id: string;
-    }
-  | {
-      ok: false;
-      message: string;
-    };
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Could not save product details.";
+function errorMsg(error: unknown) {
+  return error instanceof Error ? error.message : "Unexpected error.";
 }
 
-export async function createProductAction(values: ProductFormValues): Promise<CreateProductResult> {
+async function assertAdmin() {
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user || !isAdminUser(user)) {
+    throw new Error("Admin access required.");
+  }
+
+  return supabase;
+}
+
+// ── Create ────────────────────────────────────────────────────────────────────
+export type CreateResult = { ok: true; id: string } | { ok: false; message: string };
+
+export async function createProductAction(values: ProductFormValues): Promise<CreateResult> {
   const parsed = productFormSchema.safeParse(values);
 
   if (!parsed.success) {
-    return {
-      ok: false,
-      message: parsed.error.issues[0]?.message ?? "Check the product form and try again."
-    };
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   }
 
   const input = parsed.data;
 
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
-    const {
-      data: { session }
-    } = user ? { data: { session: null } } : await supabase.auth.getSession();
-    const currentUser = user ?? session?.user ?? null;
-
-    if (!currentUser) {
-      return {
-        ok: false,
-        message: userError?.message
-          ? `Your sign-in session could not be verified: ${userError.message}`
-          : "You must be signed in to create products."
-      };
-    }
-
-    if (!isAdminUser(currentUser)) {
-      return {
-        ok: false,
-        message: "Your account does not have admin access."
-      };
-    }
+    const supabase = await assertAdmin();
 
     const { data: product, error: productError } = await supabase
       .from("products")
       .insert({
-        title: input.title,
-        brand: input.brand,
+        name: input.name,
+        description: input.description,
         category: input.category,
+        slug: input.slug,
         main_image_url: input.mainImageUrl,
-        global_score: input.globalScore
+        amazon_affiliate_url: input.amazonAffiliateUrl
       })
       .select("id")
-      .single<ProductInsertResult>();
+      .single<{ id: string }>();
 
     if (productError || !product) {
-      return {
-        ok: false,
-        message: productError?.message ?? "Could not create product."
-      };
+      return { ok: false, message: productError?.message ?? "Could not create product." };
     }
 
-    const linkRows = input.links.map((link) => ({
+    const specRows = input.specs.map((spec, i) => ({
       product_id: product.id,
-      retailer_name: link.retailerName,
-      affiliate_url: link.affiliateUrl,
-      price: link.price,
-      is_primary: link.isPrimary
+      specification_title: spec.specificationTitle,
+      title: spec.title,
+      description: spec.description,
+      sort_order: i
     }));
 
-    const specRows = input.specs.map((spec) => ({
-      product_id: product.id,
-      spec_name: spec.specName,
-      spec_value: spec.specValue
-    }));
+    const { error: specError } = await supabase.from("product_specifications").insert(specRows);
 
-    const reviewRow = {
-      product_id: product.id,
-      summary: input.review.summary,
-      pros: input.review.pros.map((pro) => pro.value),
-      cons: input.review.cons.map((con) => con.value),
-      editor_verdict: input.review.editorVerdict
-    };
-
-    const [linksResult, specsResult, reviewResult] = await Promise.all([
-      supabase.from("product_links").insert(linkRows),
-      supabase.from("product_specs").insert(specRows),
-      supabase.from("product_reviews").insert(reviewRow)
-    ]);
-
-    const relationError = linksResult.error ?? specsResult.error ?? reviewResult.error;
-
-    if (relationError) {
+    if (specError) {
       await supabase.from("products").delete().eq("id", product.id);
-
-      return {
-        ok: false,
-        message: `Product was not saved completely: ${relationError.message}`
-      };
+      return { ok: false, message: `Specs could not be saved: ${specError.message}` };
     }
 
-    return {
-      ok: true,
-      id: product.id
-    };
+    revalidatePath("/products");
+    revalidatePath(`/reviews/${input.slug}`);
+
+    return { ok: true, id: product.id };
   } catch (error) {
-    return {
-      ok: false,
-      message: getErrorMessage(error)
-    };
+    return { ok: false, message: errorMsg(error) };
   }
+}
+
+// ── Update ────────────────────────────────────────────────────────────────────
+export type UpdateResult = { ok: true } | { ok: false; message: string };
+
+export async function updateProductAction(values: EditProductFormValues): Promise<UpdateResult> {
+  const parsed = editProductFormSchema.safeParse(values);
+
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  }
+
+  const input = parsed.data;
+
+  try {
+    const supabase = await assertAdmin();
+
+    const { error: productError } = await supabase
+      .from("products")
+      .update({
+        name: input.name,
+        description: input.description,
+        category: input.category,
+        slug: input.slug,
+        main_image_url: input.mainImageUrl,
+        amazon_affiliate_url: input.amazonAffiliateUrl
+      })
+      .eq("id", input.id);
+
+    if (productError) {
+      return { ok: false, message: productError.message };
+    }
+
+    // Replace all specs
+    await supabase.from("product_specifications").delete().eq("product_id", input.id);
+
+    const specRows = input.specs.map((spec, i) => ({
+      product_id: input.id,
+      specification_title: spec.specificationTitle,
+      title: spec.title,
+      description: spec.description,
+      sort_order: i
+    }));
+
+    const { error: specError } = await supabase.from("product_specifications").insert(specRows);
+
+    if (specError) {
+      return { ok: false, message: `Specs could not be updated: ${specError.message}` };
+    }
+
+    revalidatePath("/products");
+    revalidatePath(`/reviews/${input.slug}`);
+
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, message: errorMsg(error) };
+  }
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+export async function deleteProductAction(id: string): Promise<void> {
+  try {
+    const supabase = await assertAdmin();
+    await supabase.from("products").delete().eq("id", id);
+    revalidatePath("/products");
+  } catch {
+    // swallow; client shows optimistic UI or reloads
+  }
+
+  redirect("/products");
 }
