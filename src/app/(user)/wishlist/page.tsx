@@ -1,60 +1,30 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, Lock } from "lucide-react";
-import { WishlistGrid } from "@/app/(user)/wishlist/WishlistGrid";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-export const metadata = {
-  title: "Wishlist - PickProof"
-};
-
+export const metadata = { title: "Wishlist — PickProof" };
 export const dynamic = "force-dynamic";
 
 export default async function WishlistPage() {
-  if (!isSupabaseConfigured()) {
-    return (
-      <main className="mx-auto max-w-4xl px-4 py-14">
-        <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          <Lock className="size-8" />
-          <h1 className="mt-3 text-4xl font-black tracking-tight">Connect Supabase first</h1>
-          <p className="mt-4 leading-7">
-            Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your local environment before viewing
-            saved products.
-          </p>
-        </div>
-      </main>
-    );
-  }
+  if (!isSupabaseConfigured()) redirect("/login");
 
   const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect("/login");
-  }
+  if (!user) redirect("/login");
 
   return (
-    <main className="min-h-[calc(100vh-12rem)] bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_32rem)] px-4 py-10 dark:bg-slate-950">
-      <section className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <span className="inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
-              <Bookmark className="size-4" />
-              Saved Products
-            </span>
-            <h1 className="mt-3 text-4xl font-black tracking-[-0.06em] text-admin-ink dark:text-white md:text-6xl">
-              Your Wishlist
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-admin-muted dark:text-slate-400">
-              Keep a shortlist of products you want to revisit, compare, or buy later.
-            </p>
-          </div>
-        </div>
-
-        <WishlistGrid initialProducts={[]} />
-      </section>
-    </main>
+    <section className="pp-section">
+      <p className="eyebrow">Saved Products</p>
+      <h1 style={{ fontSize: "2.4rem", fontWeight: 500, letterSpacing: "-0.02em", margin: "12px 0 16px" }}>
+        Your Wishlist
+      </h1>
+      <p style={{ color: "var(--slate)", lineHeight: 1.7, maxWidth: 560, marginBottom: 32 }}>
+        Wishlist functionality is coming soon. Browse and bookmark products to save them here.
+      </p>
+      <Link className="btn-outline" href="/">Browse products</Link>
+    </section>
   );
 }

@@ -3,18 +3,18 @@
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  Award,
-  CheckCircle2,
   FileText,
+  ImageIcon,
   Link2,
-  ListPlus,
+  Loader2,
   Package,
   Plus,
   Save,
   Settings2,
-  Trash2
+  Trash2,
+  Wand2
 } from "lucide-react";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 import { createProductAction } from "@/app/admin/products/new/actions";
 import { categories } from "@/lib/data";
 import {
@@ -24,17 +24,60 @@ import {
   type ProductFormValues
 } from "@/lib/products/schema";
 
-const inputClass =
-  "mt-2 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-admin-accent focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
-const textareaClass = `${inputClass} min-h-28 resize-y`;
-const labelClass = "text-sm font-bold text-admin-ink dark:text-slate-100";
-const errorClass = "mt-1 text-sm font-semibold text-red-600 dark:text-red-400";
-const cardClass =
-  "rounded-[2rem] border border-admin-line bg-admin-surface p-6 shadow-[0_24px_70px_rgba(16,42,67,0.10)] dark:border-slate-800 dark:bg-slate-900";
+/* ── Shared style tokens ───────────────────────────────────────────────────── */
+const inputCls =
+  "mt-1.5 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-[#141413] focus:ring-4 focus:ring-black/5 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
+const textareaCls = `${inputCls} min-h-24 resize-y`;
+const labelCls = "block text-sm font-bold text-admin-ink dark:text-slate-100";
+const errorCls = "mt-1 text-xs font-bold text-red-600 dark:text-red-400";
+const cardCls =
+  "rounded-[2rem] border border-admin-line bg-admin-surface p-6 shadow-[0_24px_70px_rgba(16,42,67,0.07)] dark:border-slate-800 dark:bg-slate-900";
 
+/* ── SiteStripe parser ─────────────────────────────────────────────────────── */
+function parseSiteStripe(html: string): { imageUrl: string; affiliateUrl: string } {
+  if (!html.trim()) return { imageUrl: "", affiliateUrl: "" };
+
+  // If it's a plain URL, return it as affiliate URL directly
+  if (html.startsWith("http") && !html.includes("<")) {
+    return { imageUrl: "", affiliateUrl: html.trim() };
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    // Find the first <a> that contains amazon
+    const link = doc.querySelector<HTMLAnchorElement>('a[href*="amazon"]');
+    const affiliateUrl = link?.getAttribute("href") ?? "";
+
+    // Find the image inside the <a> (not the 1x1 tracking pixel)
+    const img =
+      link?.querySelector<HTMLImageElement>("img") ??
+      doc.querySelector<HTMLImageElement>('img:not([width="1"]):not([height="1"])');
+    const imageUrl = img?.getAttribute("src") ?? "";
+
+    return { affiliateUrl, imageUrl };
+  } catch {
+    return { imageUrl: "", affiliateUrl: "" };
+  }
+}
+
+/* ── Slug generator ────────────────────────────────────────────────────────── */
+function toSlug(name: string) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
+/* ── Main form ─────────────────────────────────────────────────────────────── */
 export function ProductEntryForm() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [siteStripeHtml, setSiteStripeHtml] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
 
   const {
     register,
@@ -42,17 +85,34 @@ export function ProductEntryForm() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting }
   } = useForm<ProductFormInput, unknown, ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: defaultProductFormValues
   });
 
-  const linkFields = useFieldArray({ control, name: "links" });
   const specFields = useFieldArray({ control, name: "specs" });
-  const proFields = useFieldArray({ control, name: "review.pros" });
-  const conFields = useFieldArray({ control, name: "review.cons" });
-  const score = useWatch({ control, name: "globalScore" });
+  const watchedName = watch("name");
+
+  function handleExtract() {
+    const { imageUrl, affiliateUrl } = parseSiteStripe(siteStripeHtml);
+    if (imageUrl) {
+      setValue("mainImageUrl", imageUrl, { shouldValidate: true });
+      setImagePreview(imageUrl);
+    }
+    if (affiliateUrl) {
+      setValue("amazonAffiliateUrl", affiliateUrl, { shouldValidate: true });
+    }
+    if (!imageUrl && !affiliateUrl) {
+      setMessage("Could not extract URLs from the pasted code. Check the SiteStripe HTML and try again.");
+      setStatus("error");
+    }
+  }
+
+  function handleAutoSlug() {
+    setValue("slug", toSlug(watchedName ?? ""), { shouldValidate: true });
+  }
 
   async function onSubmit(values: ProductFormValues) {
     setStatus("idle");
@@ -68,8 +128,10 @@ export function ProductEntryForm() {
       }
 
       reset(defaultProductFormValues);
+      setSiteStripeHtml("");
+      setImagePreview("");
       setStatus("success");
-      setMessage(`Product saved with ID ${result.id}.`);
+      setMessage(`Product saved! ID: ${result.id}`);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Could not save product.");
@@ -78,7 +140,7 @@ export function ProductEntryForm() {
 
   return (
     <form className="mx-auto max-w-7xl pb-28" onSubmit={handleSubmit(onSubmit)}>
-      {status !== "idle" ? (
+      {status !== "idle" && (
         <div
           className={`mb-6 rounded-3xl border px-5 py-4 text-sm font-bold ${
             status === "success"
@@ -88,314 +150,255 @@ export function ProductEntryForm() {
         >
           {message}
         </div>
-      ) : null}
+      )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        {/* ── Left column ── */}
         <div className="grid gap-6">
-          <section className={cardClass}>
-            <SectionTitle
-              description="The core product information shown across cards, reviews, and lists."
-              icon={<Package className="size-5" />}
-              title="Basic Info"
-            />
+
+          {/* Basic Info */}
+          <section className={cardCls}>
+            <SectionTitle icon={<Package className="size-5" />} title="Basic Info" desc="Core product information shown on cards and the detail page." />
 
             <div className="grid gap-5 md:grid-cols-2">
-              <label className={labelClass}>
-                Title
-                <input className={inputClass} {...register("title")} placeholder="Product name" />
-                {errors.title ? <p className={errorClass}>{errors.title.message}</p> : null}
+              <label className={labelCls}>
+                Product Name *
+                <input className={inputCls} {...register("name")} placeholder="Samsung Galaxy S24" />
+                {errors.name && <p className={errorCls}>{errors.name.message}</p>}
               </label>
 
-              <label className={labelClass}>
-                Brand
-                <input className={inputClass} {...register("brand")} placeholder="Brand name" />
-                {errors.brand ? <p className={errorClass}>{errors.brand.message}</p> : null}
-              </label>
-
-              <label className={labelClass}>
-                Category
-                <select className={inputClass} {...register("category")}>
-                  {categories.map((category) => (
-                    <option key={category.slug} value={category.title}>
-                      {category.title}
+              <label className={labelCls}>
+                Category *
+                <select className={inputCls} {...register("category")}>
+                  {categories.map((cat) => (
+                    <option key={cat.slug} value={cat.slug}>
+                      {cat.title}
                     </option>
                   ))}
                 </select>
-                {errors.category ? <p className={errorClass}>{errors.category.message}</p> : null}
+                {errors.category && <p className={errorCls}>{errors.category.message}</p>}
               </label>
 
-              <label className={labelClass}>
-                Image URL
-                <input
-                  className={inputClass}
-                  {...register("mainImageUrl")}
-                  placeholder="https://images.unsplash.com/..."
-                />
-                {errors.mainImageUrl ? (
-                  <p className={errorClass}>{errors.mainImageUrl.message}</p>
-                ) : null}
-              </label>
-            </div>
-          </section>
-
-          <section className={cardClass}>
-            <SectionTitle
-              description="Add every retailer offer and mark the main button destination."
-              icon={<Link2 className="size-5" />}
-              title="Retailer Links"
-            />
-
-            <div className="grid gap-4">
-              {linkFields.fields.map((field, index) => (
-                <div
-                  className="grid gap-4 rounded-3xl border border-admin-line bg-white p-4 dark:border-slate-700 dark:bg-slate-950 xl:grid-cols-[1fr_1.4fr_120px_120px_auto]"
-                  key={field.id}
-                >
-                  <label className={labelClass}>
-                    Retailer Name
-                    <input className={inputClass} {...register(`links.${index}.retailerName`)} />
-                    {errors.links?.[index]?.retailerName ? (
-                      <p className={errorClass}>{errors.links[index]?.retailerName?.message}</p>
-                    ) : null}
-                  </label>
-
-                  <label className={labelClass}>
-                    URL
-                    <input className={inputClass} {...register(`links.${index}.affiliateUrl`)} />
-                    {errors.links?.[index]?.affiliateUrl ? (
-                      <p className={errorClass}>{errors.links[index]?.affiliateUrl?.message}</p>
-                    ) : null}
-                  </label>
-
-                  <label className={labelClass}>
-                    Price
+              <div className="md:col-span-2">
+                <label className={labelCls}>
+                  URL Slug *
+                  <div className="flex gap-2 mt-1.5">
                     <input
-                      className={inputClass}
-                      min="0"
-                      step="0.01"
-                      type="number"
-                      {...register(`links.${index}.price`, { valueAsNumber: true })}
+                      className="flex-1 rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-[#141413] focus:ring-4 focus:ring-black/5 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 font-mono"
+                      {...register("slug")}
+                      placeholder="samsung-galaxy-s24"
                     />
-                    {errors.links?.[index]?.price ? (
-                      <p className={errorClass}>{errors.links[index]?.price?.message}</p>
-                    ) : null}
-                  </label>
-
-                  <label className="flex items-center gap-3 pt-8 text-sm font-bold text-admin-ink dark:text-slate-100">
-                    <input
-                      className="size-5 accent-emerald-600"
-                      type="checkbox"
-                      {...register(`links.${index}.isPrimary`, {
-                        onChange: (event) => {
-                          if (event.target.checked) {
-                            linkFields.fields.forEach((_, fieldIndex) => {
-                              setValue(`links.${fieldIndex}.isPrimary`, fieldIndex === index);
-                            });
-                          }
-                        }
-                      })}
-                    />
-                    Primary
-                  </label>
-
-                  <RemoveButton
-                    disabled={linkFields.fields.length === 1}
-                    label="Remove retailer link"
-                    onClick={() => linkFields.remove(index)}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {errors.links?.root ? <p className={errorClass}>{errors.links.root.message}</p> : null}
-
-            <AddButton
-              label="Add Retailer Link"
-              onClick={() =>
-                linkFields.append({
-                  retailerName: "",
-                  affiliateUrl: "",
-                  price: 0,
-                  isPrimary: false
-                })
-              }
-            />
-          </section>
-
-          <section className={cardClass}>
-            <SectionTitle
-              description="Structured key/value details for comparison tables."
-              icon={<Settings2 className="size-5" />}
-              title="Specifications"
-            />
-
-            <div className="grid gap-4">
-              {specFields.fields.map((field, index) => (
-                <div
-                  className="grid gap-4 rounded-3xl border border-admin-line bg-white p-4 dark:border-slate-700 dark:bg-slate-950 md:grid-cols-[1fr_1fr_auto]"
-                  key={field.id}
-                >
-                  <label className={labelClass}>
-                    Key
-                    <input
-                      className={inputClass}
-                      {...register(`specs.${index}.specName`)}
-                      placeholder="Battery Life"
-                    />
-                    {errors.specs?.[index]?.specName ? (
-                      <p className={errorClass}>{errors.specs[index]?.specName?.message}</p>
-                    ) : null}
-                  </label>
-
-                  <label className={labelClass}>
-                    Value
-                    <input
-                      className={inputClass}
-                      {...register(`specs.${index}.specValue`)}
-                      placeholder="12 hours"
-                    />
-                    {errors.specs?.[index]?.specValue ? (
-                      <p className={errorClass}>{errors.specs[index]?.specValue?.message}</p>
-                    ) : null}
-                  </label>
-
-                  <RemoveButton
-                    disabled={specFields.fields.length === 1}
-                    label="Remove specification"
-                    onClick={() => specFields.remove(index)}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {errors.specs?.root ? <p className={errorClass}>{errors.specs.root.message}</p> : null}
-
-            <AddButton label="Add Spec" onClick={() => specFields.append({ specName: "", specValue: "" })} />
-          </section>
-
-          <section className={cardClass}>
-            <SectionTitle
-              description="Summarize the buying recommendation with balanced pros and cons."
-              icon={<FileText className="size-5" />}
-              title="Review Details"
-            />
-
-            <div className="grid gap-5">
-              <label className={labelClass}>
-                Review Summary
-                <textarea
-                  className={textareaClass}
-                  {...register("review.summary")}
-                  placeholder="Short review summary for cards and landing pages."
-                />
-                {errors.review?.summary ? (
-                  <p className={errorClass}>{errors.review.summary.message}</p>
-                ) : null}
-              </label>
-
-              <div className="grid gap-5 lg:grid-cols-2">
-                <DynamicTextareaList
-                  errors={proFields.fields.map(
-                    (_, index) => errors.review?.pros?.[index]?.value?.message
-                  )}
-                  fields={proFields.fields}
-                  label="Pros"
-                  onAdd={() => proFields.append({ value: "" })}
-                  onRemove={(index) => proFields.remove(index)}
-                  register={register}
-                  registerName="review.pros"
-                />
-                <DynamicTextareaList
-                  errors={conFields.fields.map(
-                    (_, index) => errors.review?.cons?.[index]?.value?.message
-                  )}
-                  fields={conFields.fields}
-                  label="Cons"
-                  onAdd={() => conFields.append({ value: "" })}
-                  onRemove={(index) => conFields.remove(index)}
-                  register={register}
-                  registerName="review.cons"
-                />
+                    <button
+                      className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-2xl border border-admin-line px-4 py-3 text-sm font-bold text-admin-muted hover:text-admin-ink dark:border-slate-700 dark:text-slate-400 transition"
+                      onClick={handleAutoSlug}
+                      title="Generate slug from product name"
+                      type="button"
+                    >
+                      <Wand2 className="size-4" />
+                      Auto
+                    </button>
+                  </div>
+                  {errors.slug && <p className={errorCls}>{errors.slug.message}</p>}
+                </label>
               </div>
 
-              <label className={labelClass}>
-                Editor Verdict
-                <textarea
-                  className={`${textareaClass} min-h-40`}
-                  {...register("review.editorVerdict")}
-                  placeholder="Explain who should buy it, who should skip it, and why."
-                />
-                {errors.review?.editorVerdict ? (
-                  <p className={errorClass}>{errors.review.editorVerdict.message}</p>
-                ) : null}
-              </label>
+              <div className="md:col-span-2">
+                <label className={labelCls}>
+                  Description *
+                  <textarea
+                    className={textareaCls}
+                    {...register("description")}
+                    placeholder="A brief, compelling description of the product — what it is and who it's for."
+                  />
+                  {errors.description && <p className={errorCls}>{errors.description.message}</p>}
+                </label>
+              </div>
             </div>
+          </section>
+
+          {/* SiteStripe Parser */}
+          <section className={cardCls}>
+            <SectionTitle
+              icon={<Link2 className="size-5" />}
+              title="SiteStripe — Image & Affiliate Link"
+              desc="Paste the SiteStripe HTML (Image type) from Amazon Associates. We'll extract the product image and affiliate URL automatically."
+            />
+
+            <div className="grid gap-4">
+              <label className={labelCls}>
+                SiteStripe HTML Code
+                <textarea
+                  className={`${textareaCls} min-h-32 font-mono text-xs`}
+                  onChange={(e) => setSiteStripeHtml(e.target.value)}
+                  placeholder='<a href="https://www.amazon.in/dp/ASIN?tag=yourtag-21" target="_blank"><img border="0" src="https://ws-in.amazon-adsystem.com/..." /></a>'
+                  value={siteStripeHtml}
+                />
+              </label>
+
+              <button
+                className="inline-flex items-center gap-2 self-start rounded-full bg-[#141413] px-5 py-2.5 text-sm font-bold text-[#F3F0EE] transition hover:opacity-80"
+                onClick={handleExtract}
+                type="button"
+              >
+                <Wand2 className="size-4" />
+                Extract Image & Link
+              </button>
+
+              {/* Image preview */}
+              {imagePreview && (
+                <div className="flex items-center gap-4 rounded-3xl border border-admin-line bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img alt="Product preview" className="size-24 rounded-2xl object-contain" src={imagePreview} />
+                  <div>
+                    <p className="text-sm font-bold text-admin-ink dark:text-white">Image extracted</p>
+                    <p className="text-xs text-admin-muted dark:text-slate-400 break-all max-w-xs">{imagePreview.slice(0, 80)}…</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className={labelCls}>
+                  Product Image URL *
+                  <input className={inputCls} {...register("mainImageUrl")} placeholder="https://ws-in.amazon-adsystem.com/..." />
+                  {errors.mainImageUrl && <p className={errorCls}>{errors.mainImageUrl.message}</p>}
+                </label>
+
+                <label className={labelCls}>
+                  Amazon Affiliate URL * (See Price CTA)
+                  <input className={inputCls} {...register("amazonAffiliateUrl")} placeholder="https://www.amazon.in/dp/..." />
+                  {errors.amazonAffiliateUrl && <p className={errorCls}>{errors.amazonAffiliateUrl.message}</p>}
+                </label>
+              </div>
+            </div>
+          </section>
+
+          {/* Specifications */}
+          <section className={cardCls}>
+            <SectionTitle
+              icon={<Settings2 className="size-5" />}
+              title="Product Specifications"
+              desc="Each row is one spec. Group related specs under the same Specification Title (e.g. 'Display', 'Performance')."
+            />
+
+            {/* Column labels */}
+            <div className="mb-3 hidden grid-cols-[1fr_1fr_1.2fr_auto] gap-3 md:grid">
+              <span className="text-xs font-bold uppercase tracking-wide text-admin-muted dark:text-slate-400">Spec Group Title</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-admin-muted dark:text-slate-400">Spec Name</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-admin-muted dark:text-slate-400">Value / Description</span>
+              <span />
+            </div>
+
+            <div className="grid gap-3">
+              {specFields.fields.map((field, index) => (
+                <div
+                  className="grid gap-3 rounded-2xl border border-admin-line bg-white p-4 dark:border-slate-700 dark:bg-slate-950 md:grid-cols-[1fr_1fr_1.2fr_auto]"
+                  key={field.id}
+                >
+                  <div>
+                    <label className="text-xs font-bold text-admin-muted md:hidden dark:text-slate-400">Group Title</label>
+                    <input
+                      className={inputCls}
+                      {...register(`specs.${index}.specificationTitle`)}
+                      placeholder="Display"
+                    />
+                    {errors.specs?.[index]?.specificationTitle && (
+                      <p className={errorCls}>{errors.specs[index]?.specificationTitle?.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-admin-muted md:hidden dark:text-slate-400">Spec Name</label>
+                    <input
+                      className={inputCls}
+                      {...register(`specs.${index}.title`)}
+                      placeholder="Screen Size"
+                    />
+                    {errors.specs?.[index]?.title && (
+                      <p className={errorCls}>{errors.specs[index]?.title?.message}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-admin-muted md:hidden dark:text-slate-400">Value</label>
+                    <input
+                      className={inputCls}
+                      {...register(`specs.${index}.description`)}
+                      placeholder="6.2 inches, 2340×1080"
+                    />
+                    {errors.specs?.[index]?.description && (
+                      <p className={errorCls}>{errors.specs[index]?.description?.message}</p>
+                    )}
+                  </div>
+
+                  <button
+                    className="inline-flex items-center justify-center gap-1.5 self-center rounded-2xl border border-red-200 px-3 py-2 text-xs font-bold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950"
+                    disabled={specFields.fields.length === 1}
+                    onClick={() => specFields.remove(index)}
+                    type="button"
+                  >
+                    <Trash2 className="size-3.5" />
+                    <span className="md:hidden">Remove</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {errors.specs?.root && <p className={errorCls}>{errors.specs.root.message}</p>}
+
+            <button
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-admin-line px-5 py-2.5 text-sm font-bold text-admin-ink transition hover:border-[#141413] dark:border-slate-700 dark:text-slate-100"
+              onClick={() =>
+                specFields.append({ specificationTitle: "", title: "", description: "", sortOrder: specFields.fields.length })
+              }
+              type="button"
+            >
+              <Plus className="size-4" />
+              Add Spec Row
+            </button>
           </section>
         </div>
 
+        {/* ── Right sidebar ── */}
         <aside className="grid gap-6 self-start lg:sticky lg:top-6">
-          <section className={cardClass}>
+          <section className={cardCls}>
             <SectionTitle
-              description="Tune how prominently this product appears across the site."
-              icon={<Award className="size-5" />}
-              title="Score & Publishing"
+              icon={<FileText className="size-5" />}
+              title="Publishing"
+              desc="Products publish immediately and are protected by admin-only Supabase RLS."
             />
-
-            <label className={labelClass}>
-              Global Score: {Number(score).toFixed(1)}
-              <div className="mt-3 grid gap-3 rounded-2xl border border-admin-line bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
-                <input
-                  className="accent-emerald-600"
-                  max="10"
-                  min="0"
-                  step="0.1"
-                  type="range"
-                  {...register("globalScore", { valueAsNumber: true })}
-                />
-                <input
-                  className="rounded-xl border border-admin-line bg-transparent px-3 py-2 text-admin-ink dark:border-slate-700 dark:text-slate-100"
-                  max="10"
-                  min="0"
-                  step="0.1"
-                  type="number"
-                  {...register("globalScore", { valueAsNumber: true })}
-                />
-              </div>
-              {errors.globalScore ? (
-                <p className={errorClass}>{errors.globalScore.message}</p>
-              ) : null}
-            </label>
-
-            <div className="mt-5 rounded-2xl bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-900 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-100 dark:ring-emerald-800">
-              <CheckCircle2 className="mb-2 size-5" />
-              Products are saved as published records and protected by admin-only Supabase RLS.
+            <div className="rounded-2xl bg-[#F4F4F4] p-4 text-sm text-admin-muted dark:bg-slate-800 dark:text-slate-400">
+              <ImageIcon className="mb-2 size-5" />
+              <p className="leading-6">
+                Paste the SiteStripe <strong>Image</strong> code from Amazon Associates India to extract both the product image and your affiliate link in one click.
+              </p>
             </div>
           </section>
 
-          <section className={cardClass}>
-            <h2 className="text-lg font-black text-admin-ink dark:text-white">Checklist</h2>
-            <ul className="mt-4 grid gap-3 text-sm font-semibold text-admin-muted dark:text-slate-400">
-              <li>Basic info is customer-facing and should be concise.</li>
-              <li>Mark one retailer as primary for strongest conversion.</li>
-              <li>Use specs that shoppers actually compare.</li>
-              <li>Pros and cons should be short, scannable, and specific.</li>
+          <section className={cardCls}>
+            <h2 className="text-base font-black text-admin-ink dark:text-white">Checklist</h2>
+            <ul className="mt-4 grid gap-2 text-sm text-admin-muted dark:text-slate-400">
+              <li className="flex gap-2">✓ Name is short and searchable</li>
+              <li className="flex gap-2">✓ Description is 1–3 sentences</li>
+              <li className="flex gap-2">✓ Image extracted from SiteStripe</li>
+              <li className="flex gap-2">✓ Affiliate URL points to amazon.in</li>
+              <li className="flex gap-2">✓ At least 3–5 specs added</li>
+              <li className="flex gap-2">✓ Slug is URL-safe and unique</li>
             </ul>
           </section>
         </aside>
       </div>
 
+      {/* Sticky save bar */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-admin-line bg-white/90 px-4 py-4 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-admin-muted dark:text-slate-400">
-            Review the product data, then save it to Supabase.
-          </p>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+          <p className="text-sm text-admin-muted dark:text-slate-400">Review all fields, then save to Supabase.</p>
           <button
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-7 py-3 text-sm font-black text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-[#141413] px-7 py-3 text-sm font-bold text-[#F3F0EE] transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isSubmitting}
             type="submit"
           >
-            <Save className="size-4" />
-            {isSubmitting ? "Saving..." : "Save Product"}
+            {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {isSubmitting ? "Saving…" : "Save Product"}
           </button>
         </div>
       </div>
@@ -403,115 +406,15 @@ export function ProductEntryForm() {
   );
 }
 
-function SectionTitle({
-  description,
-  icon,
-  title
-}: {
-  description: string;
-  icon: React.ReactNode;
-  title: string;
-}) {
+function SectionTitle({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="mb-6 flex gap-4 border-b border-admin-line pb-4 dark:border-slate-800">
-      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
+    <div className="mb-5 flex gap-4 border-b border-admin-line pb-4 dark:border-slate-800">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#F4F4F4] text-admin-muted dark:bg-slate-800 dark:text-slate-400">
         {icon}
       </div>
       <div>
-        <h2 className="text-2xl font-black tracking-tight text-admin-ink dark:text-white">
-          {title}
-        </h2>
-        <p className="mt-1 text-sm text-admin-muted dark:text-slate-400">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      className="mt-5 inline-flex items-center gap-2 rounded-full border border-admin-line px-5 py-3 text-sm font-black text-admin-ink transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-100"
-      onClick={onClick}
-      type="button"
-    >
-      <Plus className="size-4" />
-      {label}
-    </button>
-  );
-}
-
-function RemoveButton({
-  disabled,
-  label,
-  onClick
-}: {
-  disabled: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 px-4 py-2 text-sm font-black text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950 md:self-end"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      <Trash2 className="size-4" />
-      Remove
-      <span className="sr-only"> {label}</span>
-    </button>
-  );
-}
-
-type DynamicTextareaListProps = {
-  errors: (string | undefined)[];
-  fields: { id: string }[];
-  label: "Pros" | "Cons";
-  onAdd: () => void;
-  onRemove: (index: number) => void;
-  register: ReturnType<typeof useForm<ProductFormInput, unknown, ProductFormValues>>["register"];
-  registerName: "review.pros" | "review.cons";
-};
-
-function DynamicTextareaList({
-  errors,
-  fields,
-  label,
-  onAdd,
-  onRemove,
-  register,
-  registerName
-}: DynamicTextareaListProps) {
-  return (
-    <div className="rounded-3xl border border-admin-line bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <strong className="text-admin-ink dark:text-white">{label}</strong>
-        <button
-          className="inline-flex items-center gap-2 rounded-full border border-admin-line px-3 py-2 text-xs font-black text-admin-ink dark:border-slate-700 dark:text-slate-100"
-          onClick={onAdd}
-          type="button"
-        >
-          <ListPlus className="size-3.5" />
-          Add
-        </button>
-      </div>
-
-      <div className="grid gap-3">
-        {fields.map((field, index) => (
-          <div className="grid gap-2" key={field.id}>
-            <textarea
-              className={`${textareaClass} min-h-24`}
-              {...register(`${registerName}.${index}.value`)}
-              placeholder={label === "Pros" ? "Excellent battery life" : "Limited port selection"}
-            />
-            <RemoveButton
-              disabled={fields.length === 1}
-              label={`Remove ${label.toLowerCase()} item`}
-              onClick={() => onRemove(index)}
-            />
-            {errors[index] ? <p className={errorClass}>{errors[index]}</p> : null}
-          </div>
-        ))}
+        <h2 className="text-lg font-black text-admin-ink dark:text-white">{title}</h2>
+        <p className="mt-0.5 text-sm text-admin-muted dark:text-slate-400">{desc}</p>
       </div>
     </div>
   );

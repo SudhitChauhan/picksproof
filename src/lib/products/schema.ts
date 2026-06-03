@@ -1,66 +1,59 @@
 import { z } from "zod";
 
-const requiredText = (label: string) => z.string().trim().min(1, `${label} is required.`);
+const req = (label: string) => z.string().trim().min(1, `${label} is required.`);
 
+// ── Product specification item (3 fields) ─────────────────────────────────────
+export const specItemSchema = z.object({
+  specificationTitle: req("Specification title"),
+  title: req("Spec title"),
+  description: req("Spec description"),
+  sortOrder: z.number().int().default(0)
+});
+
+export type SpecItem = z.infer<typeof specItemSchema>;
+export type SpecItemInput = z.input<typeof specItemSchema>;
+
+// ── Main product form ─────────────────────────────────────────────────────────
 export const productFormSchema = z.object({
-  title: requiredText("Title"),
-  brand: requiredText("Brand"),
-  category: requiredText("Category"),
-  mainImageUrl: z.string().trim().url("Enter a valid image URL."),
-  globalScore: z.coerce.number().min(0).max(10),
-  links: z
-    .array(
-      z.object({
-        retailerName: requiredText("Retailer name"),
-        affiliateUrl: z.string().trim().url("Enter a valid affiliate URL."),
-        price: z.coerce.number().min(0, "Price must be 0 or higher."),
-        isPrimary: z.boolean()
-      })
-    )
-    .min(1, "Add at least one affiliate link."),
+  name: req("Product name"),
+  description: req("Description"),
+  category: req("Category"),
+  slug: z
+    .string()
+    .trim()
+    .min(1, "Slug is required.")
+    .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens."),
+  mainImageUrl: z.string().trim().url("Enter a valid image URL or extract it via SiteStripe."),
+  amazonAffiliateUrl: z.string().trim().url("Enter a valid Amazon affiliate URL."),
   specs: z
-    .array(
-      z.object({
-        specName: requiredText("Spec name"),
-        specValue: requiredText("Spec value")
-      })
-    )
-    .min(1, "Add at least one specification."),
-  review: z.object({
-    summary: requiredText("Review summary"),
-    pros: z.array(z.object({ value: requiredText("Pro") })).min(1, "Add at least one pro."),
-    cons: z.array(z.object({ value: requiredText("Con") })).min(1, "Add at least one con."),
-    editorVerdict: requiredText("Editor verdict")
-  })
+    .array(specItemSchema)
+    .min(1, "Add at least one specification.")
 });
 
 export type ProductFormValues = z.infer<typeof productFormSchema>;
 export type ProductFormInput = z.input<typeof productFormSchema>;
 
 export const defaultProductFormValues: ProductFormInput = {
-  title: "",
-  brand: "",
-  category: "Headphones",
+  name: "",
+  description: "",
+  category: "electronics",
+  slug: "",
   mainImageUrl: "",
-  globalScore: 8,
-  links: [
-    {
-      retailerName: "Amazon",
-      affiliateUrl: "",
-      price: 0,
-      isPrimary: true
-    }
-  ],
+  amazonAffiliateUrl: "",
   specs: [
     {
-      specName: "",
-      specValue: ""
+      specificationTitle: "",
+      title: "",
+      description: "",
+      sortOrder: 0
     }
-  ],
-  review: {
-    summary: "",
-    pros: [{ value: "" }],
-    cons: [{ value: "" }],
-    editorVerdict: ""
-  }
+  ]
 };
+
+// ── Edit form (same but with id) ──────────────────────────────────────────────
+export const editProductFormSchema = productFormSchema.extend({
+  id: z.string().uuid()
+});
+
+export type EditProductFormValues = z.infer<typeof editProductFormSchema>;
+export type EditProductFormInput = z.input<typeof editProductFormSchema>;

@@ -3,10 +3,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 type RegisterPageProps = {
-  searchParams: Promise<{
-    error?: string;
-    reason?: string;
-  }>;
+  searchParams: Promise<{ error?: string; reason?: string }>;
 };
 
 async function register(formData: FormData) {
@@ -15,128 +12,112 @@ async function register(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+
+  // Use the env-configured site URL so the confirmation email always
+  // points to the right domain (not localhost when running in production,
+  // not a production URL when testing locally).
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+
   const supabase = await createServerSupabaseClient();
 
-  const { error } = await supabase.auth
+  const { data, error } = await supabase.auth
     .signUp({
       email,
       password,
       options: {
-        data: {
-          name,
-          role: "user"
-        }
+        data: { name, role: "user" },
+        // Supabase will append ?code=... to this URL
+        emailRedirectTo: `${origin}/auth/callback`
       }
     })
-    .catch((error) => ({
-      error: error instanceof Error ? error : new Error("Could not reach Supabase. Please try again.")
+    .catch((e) => ({
+      data: { session: null, user: null },
+      error: e instanceof Error ? e : new Error("Could not reach Supabase.")
     }));
 
   if (error) {
     redirect(`/register?error=signup&reason=${encodeURIComponent(error.message)}`);
   }
 
-  await supabase.auth.signOut();
-  redirect("/login?message=registered");
+  // Email confirmation is DISABLED in Supabase → session returned immediately
+  if (data?.session) {
+    redirect("/profile");
+  }
+
+  // Email confirmation is ENABLED → show the "check your inbox" page
+  redirect(`/auth/confirm-email?email=${encodeURIComponent(email)}`);
 }
 
-export const metadata = {
-  title: "Create Account - PickProof"
-};
+export const metadata = { title: "Create Account — PickProof" };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
-  const hasSignupError = params.error === "signup";
+  const hasError = params.error === "signup";
   const errorMessage = params.reason || "Could not create your account. Please try again.";
 
   return (
-    <main className="min-h-[calc(100vh-12rem)] bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_30rem)] px-4 py-14 dark:bg-slate-950">
-      <section className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-        <div>
-          <span className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
-            Join PickProof
-          </span>
-          <h1 className="mt-4 text-4xl font-black tracking-[-0.06em] text-admin-ink dark:text-white md:text-6xl">
-            Create your review hub account.
+    <div className="auth-page">
+      <div className="w-full max-w-[460px]">
+        <div className="text-center mb-8">
+          <p className="eyebrow justify-center">Join PickProof</p>
+          <h1 className="text-[clamp(1.8rem,4vw,2.4rem)] font-medium tracking-[-0.02em] mt-3 mb-2 text-ink">
+            Create your account
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-admin-muted dark:text-slate-400">
-            Register as a standard user to save preferences and access future shopper features.
-            Admin access is controlled separately through Supabase app metadata.
+          <p className="text-slate text-[0.95rem] leading-relaxed m-0">
+            Register to access your profile. Admin access is set separately.
           </p>
         </div>
 
-        <div className="rounded-[2rem] border border-admin-line bg-admin-surface p-6 shadow-[0_24px_70px_rgba(16,42,67,0.12)] dark:border-slate-800 dark:bg-slate-900">
+        <div className="auth-card">
           {!isSupabaseConfigured() ? (
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+            <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-5 text-sm text-yellow-900">
               Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to <code>.env.local</code> before creating
-              accounts.
+              <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to <code>.env.local</code>.
             </div>
           ) : (
             <form action={register} className="grid gap-5">
-              {hasSignupError ? (
-                <div className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+              {hasError && (
+                <div className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
                   {errorMessage}
                 </div>
-              ) : null}
+              )}
 
-              <label className="text-sm font-bold text-admin-ink dark:text-slate-100">
-                Name
-                <input
-                  autoComplete="name"
-                  className="mt-2 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-admin-accent focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                  name="name"
-                  placeholder="Jane Shopper"
-                  required
-                  type="text"
-                />
-              </label>
+              <div className="auth-field">
+                <label>Full Name</label>
+                <input autoComplete="name" name="name" placeholder="Jane Shopper" required type="text" />
+              </div>
 
-              <label className="text-sm font-bold text-admin-ink dark:text-slate-100">
-                Email
-                <input
-                  autoComplete="email"
-                  className="mt-2 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-admin-accent focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                  name="email"
-                  placeholder="you@example.com"
-                  required
-                  type="email"
-                />
-              </label>
+              <div className="auth-field">
+                <label>Email</label>
+                <input autoComplete="email" name="email" placeholder="you@example.com" required type="email" />
+              </div>
 
-              <label className="text-sm font-bold text-admin-ink dark:text-slate-100">
-                Password
+              <div className="auth-field">
+                <label>Password</label>
                 <input
                   autoComplete="new-password"
-                  className="mt-2 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-admin-accent focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                   minLength={8}
                   name="password"
                   placeholder="At least 8 characters"
                   required
                   type="password"
                 />
-              </label>
+              </div>
 
-              <button
-                className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/25"
-                type="submit"
-              >
+              <button className="btn-primary w-full justify-center py-3 rounded-btn" type="submit">
                 Create Account
               </button>
 
-              <p className="text-center text-sm font-semibold text-admin-muted dark:text-slate-400">
+              <p className="text-center text-[0.875rem] text-slate m-0">
                 Already have an account?{" "}
-                <Link
-                  className="font-black text-emerald-700 hover:text-emerald-800 dark:text-emerald-300"
-                  href="/login"
-                >
+                <Link href="/login" className="font-bold text-ink">
                   Sign in
                 </Link>
               </p>
             </form>
           )}
         </div>
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }

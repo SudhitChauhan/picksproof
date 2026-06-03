@@ -1,256 +1,117 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, Lock, LogOut, Mail, Shield, Trash2, UserRound } from "lucide-react";
+import { CalendarDays, ExternalLink, LogOut, Mail, Package, Search, User } from "lucide-react";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-type ProfilePageProps = {
-  searchParams: Promise<{
-    error?: string;
-    message?: string;
-  }>;
-};
-
-async function updateDisplayName(formData: FormData) {
+async function logout() {
   "use server";
-
-  const name = String(formData.get("name") ?? "").trim();
-  const supabase = await createServerSupabaseClient();
-
-  const { error } = await supabase.auth.updateUser({
-    data: {
-      name,
-      role: "user"
-    }
-  });
-
-  if (error) {
-    redirect("/profile?error=name");
-  }
-
-  redirect("/profile?message=name-updated");
-}
-
-async function updatePassword(formData: FormData) {
-  "use server";
-
-  const password = String(formData.get("password") ?? "");
-  const supabase = await createServerSupabaseClient();
-
-  const { error } = await supabase.auth.updateUser({
-    password
-  });
-
-  if (error) {
-    redirect("/profile?error=password");
-  }
-
-  redirect("/profile?message=password-updated");
-}
-
-async function signOut() {
-  "use server";
-
+  const { createServerSupabaseClient } = await import("@/lib/supabase/server");
+  const { redirect } = await import("next/navigation");
   const supabase = await createServerSupabaseClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
 
-export const metadata = {
-  title: "Profile - PickProof"
-};
-
+export const metadata = { title: "Profile — PickProof" };
 export const dynamic = "force-dynamic";
 
-export default async function ProfilePage({ searchParams }: ProfilePageProps) {
-  const params = await searchParams;
-
-  if (!isSupabaseConfigured()) {
-    return (
-      <main className="mx-auto max-w-4xl px-4 py-14">
-        <SetupRequired />
-      </main>
-    );
-  }
+export default async function ProfilePage() {
+  if (!isSupabaseConfigured()) redirect("/login");
 
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  if (!user) {
-    redirect("/login");
-  }
+  const name = (user.user_metadata?.name as string | undefined) ?? "";
+  const email = user.email ?? "";
+  const initials = name
+    ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+    : email[0]?.toUpperCase() ?? "U";
 
-  const displayName = String(user.user_metadata.name ?? "").trim();
-  const initial = (displayName || user.email || "U").charAt(0).toUpperCase();
+  const joinedAt = new Date(user.created_at).toLocaleDateString("en-IN", {
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
 
   return (
-    <main className="min-h-[calc(100vh-12rem)] bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.14),transparent_32rem)] px-4 py-10 dark:bg-slate-950">
-      <section className="mx-auto max-w-5xl">
-        <div className="rounded-[2rem] border border-admin-line bg-admin-surface p-6 shadow-[0_24px_70px_rgba(16,42,67,0.10)] dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex size-20 items-center justify-center rounded-[1.75rem] bg-emerald-600 text-3xl font-black text-white shadow-lg shadow-emerald-900/20">
-              {initial}
-            </div>
-            <div className="min-w-0">
-              <span className="text-sm font-black uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
-                User Profile
-              </span>
-              <h1 className="mt-2 text-4xl font-black tracking-[-0.06em] text-admin-ink dark:text-white md:text-5xl">
-                Hi, {displayName || "there"}.
-              </h1>
-              <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-admin-muted dark:text-slate-400">
-                <Mail className="size-4" />
-                {user.email}
-              </p>
-            </div>
+    <div className="flex min-h-[calc(100vh-80px)] items-start justify-center px-6 pb-20 pt-16">
+      <div className="w-full max-w-[520px]">
+
+        {/* Avatar + name */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-22 w-22 items-center justify-center rounded-full bg-ink text-canvas text-[1.8rem] font-bold tracking-[-0.04em] shadow-[var(--shadow-md)] h-[88px] w-[88px]">
+            {initials}
+          </div>
+          <h1 className="text-[1.6rem] font-medium tracking-[-0.02em] mb-1 text-ink">
+            {name || "Welcome back"}
+          </h1>
+          <p className="text-slate text-[0.9rem] m-0">{email}</p>
+        </div>
+
+        {/* Info card */}
+        <div className="auth-card mb-4">
+          <div className="grid gap-5">
+            <InfoRow icon={<User size={16} />} label="Full name" value={name || "—"} />
+            <InfoRow icon={<Mail size={16} />} label="Email address" value={email} />
+            <InfoRow icon={<CalendarDays size={16} />} label="Member since" value={joinedAt} />
+            <InfoRow icon={<Package size={16} />} label="Account type" value="Standard user" />
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-line grid gap-2.5">
+            <Link className="btn-outline justify-center" href="/">
+              <Search size={15} /> Browse products
+            </Link>
+            <form action={logout}>
+              <button className="btn-primary w-full justify-center" type="submit">
+                <LogOut size={15} /> Sign out
+              </button>
+            </form>
           </div>
         </div>
 
-        {params.message ? (
-          <div className="mt-6 rounded-3xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-            {params.message === "password-updated"
-              ? "Password updated successfully."
-              : "Profile updated successfully."}
-          </div>
-        ) : null}
-
-        {params.error ? (
-          <div className="mt-6 rounded-3xl border border-red-300 bg-red-50 px-5 py-4 text-sm font-bold text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
-            We could not save that change. Please try again.
-          </div>
-        ) : null}
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <section className="rounded-[2rem] border border-admin-line bg-admin-surface p-6 shadow-[0_24px_70px_rgba(16,42,67,0.10)] dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-6 flex gap-4 border-b border-admin-line pb-4 dark:border-slate-800">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-                <UserRound className="size-5" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-black tracking-tight text-admin-ink dark:text-white">
-                  Account Settings
-                </h2>
-                <p className="mt-1 text-sm text-admin-muted dark:text-slate-400">
-                  Manage the basics for your PickProof account.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid gap-6">
-              <form action={updateDisplayName} className="grid gap-4">
-                <label className="text-sm font-bold text-admin-ink dark:text-slate-100">
-                  Display Name
-                  <input
-                    className="mt-2 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-admin-accent focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                    defaultValue={displayName}
-                    name="name"
-                    placeholder="Your name"
-                    required
-                    type="text"
-                  />
-                </label>
-                <button
-                  className="w-fit rounded-full bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700"
-                  type="submit"
-                >
-                  Save Display Name
-                </button>
-              </form>
-
-              <form action={updatePassword} className="grid gap-4 border-t border-admin-line pt-6 dark:border-slate-800">
-                <label className="text-sm font-bold text-admin-ink dark:text-slate-100">
-                  New Password
-                  <input
-                    autoComplete="new-password"
-                    className="mt-2 w-full rounded-2xl border border-admin-line bg-white px-4 py-3 text-sm text-admin-ink outline-none transition focus:border-admin-accent focus:ring-4 focus:ring-emerald-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                    minLength={8}
-                    name="password"
-                    placeholder="At least 8 characters"
-                    required
-                    type="password"
-                  />
-                </label>
-                <button
-                  className="w-fit rounded-full border border-admin-line px-5 py-3 text-sm font-black text-admin-ink transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-100"
-                  type="submit"
-                >
-                  Update Password
-                </button>
-              </form>
-            </div>
-          </section>
-
-          <aside className="grid gap-6 self-start">
-            <section className="rounded-[2rem] border border-admin-line bg-admin-surface p-6 shadow-[0_24px_70px_rgba(16,42,67,0.10)] dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center gap-3">
-                <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
-                  <Shield className="size-5" />
-                </div>
-                <div>
-                  <h2 className="font-black text-admin-ink dark:text-white">Account Role</h2>
-                  <p className="text-sm font-semibold text-admin-muted dark:text-slate-400">
-                    {String(user.user_metadata.role ?? "user")}
-                  </p>
-                </div>
-              </div>
+        {/* Quick links */}
+        <div className="rounded-[20px] border border-line bg-lifted p-5">
+          <p className="text-[0.72rem] font-black tracking-[0.06em] uppercase text-slate mb-3.5">
+            Quick links
+          </p>
+          <div className="grid gap-2.5">
+            {[
+              { href: "/categories/best-laptops", label: "Best Laptops" },
+              { href: "/categories/smartphones",  label: "Smartphones" },
+              { href: "/categories/audio",         label: "Audio" },
+              { href: "/categories/electronics",   label: "Electronics" }
+            ].map(({ href, label }) => (
               <Link
-                className="mt-5 inline-flex w-full items-center justify-center rounded-full border border-admin-line px-5 py-3 text-sm font-black text-admin-ink transition hover:border-emerald-400 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-100"
-                href="/wishlist"
+                key={href}
+                href={href}
+                className="flex items-center justify-between text-[0.9rem] text-ink font-[450] py-1"
               >
-                View Saved Products
+                {label}
+                <ExternalLink size={13} className="text-dust" />
               </Link>
-            </section>
-
-            <section className="rounded-[2rem] border border-red-200 bg-red-50 p-6 text-red-950 shadow-[0_24px_70px_rgba(16,42,67,0.10)] dark:border-red-900 dark:bg-red-950 dark:text-red-100">
-              <div className="flex gap-3">
-                <AlertTriangle className="mt-1 size-5 shrink-0" />
-                <div>
-                  <h2 className="text-xl font-black">Danger Zone</h2>
-                  <p className="mt-2 text-sm font-semibold leading-6">
-                    Sign out safely, or request account deletion once the backend deletion workflow
-                    is enabled.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3">
-                <form action={signOut}>
-                  <button
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700"
-                    type="submit"
-                  >
-                    <LogOut className="size-4" />
-                    Sign Out
-                  </button>
-                </form>
-                <button
-                  className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border border-red-300 px-5 py-3 text-sm font-black opacity-60 dark:border-red-800"
-                  disabled
-                  type="button"
-                >
-                  <Trash2 className="size-4" />
-                  Delete Account
-                </button>
-              </div>
-            </section>
-          </aside>
+            ))}
+          </div>
         </div>
-      </section>
-    </main>
+
+        <p className="mt-5 text-center text-[0.78rem] text-dust">
+          Admin access is managed via Supabase app metadata.
+        </p>
+      </div>
+    </div>
   );
 }
 
-function SetupRequired() {
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-8 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-      <Lock className="size-8" />
-      <h1 className="mt-3 text-4xl font-black tracking-tight">Connect Supabase first</h1>
-      <p className="mt-4 leading-7">
-        Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
-        <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your local environment before managing your
-        profile.
-      </p>
+    <div className="flex items-start gap-3.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-line bg-canvas text-slate">
+        {icon}
+      </div>
+      <div>
+        <p className="text-[0.75rem] font-bold text-slate mb-0.5 uppercase tracking-[0.04em]">{label}</p>
+        <p className="text-[0.95rem] text-ink m-0 font-[450]">{value}</p>
+      </div>
     </div>
   );
 }
