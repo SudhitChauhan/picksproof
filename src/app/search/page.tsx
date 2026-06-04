@@ -1,18 +1,10 @@
 import Link from "next/link";
-import { ExternalLink, Package, Search } from "lucide-react";
+import { Package, Search } from "lucide-react";
+import { ProductCard } from "@/components/ProductCard";
+import { PRODUCT_LIST_COLUMNS, type ProductRow } from "@/lib/products/types";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 type SearchPageProps = { searchParams: Promise<{ q?: string }> };
-
-type ProductRow = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  slug: string;
-  main_image_url: string;
-  amazon_affiliate_url: string;
-};
 
 async function searchProducts(query: string): Promise<ProductRow[]> {
   if (!isSupabaseConfigured() || !query.trim()) return [];
@@ -20,7 +12,7 @@ async function searchProducts(query: string): Promise<ProductRow[]> {
     const supabase = await createServerSupabaseClient();
     const { data } = await supabase
       .from("products")
-      .select("id, name, description, category, slug, main_image_url, amazon_affiliate_url")
+      .select(PRODUCT_LIST_COLUMNS)
       .ilike("name", `%${query}%`)
       .order("created_at", { ascending: false })
       .limit(12);
@@ -42,7 +34,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       {/* Search bar header */}
       <section className="pp-section pb-10">
         <p className="eyebrow">Search results</p>
-        <h1 className="text-[clamp(2rem,4vw,3rem)] font-medium tracking-[-0.02em] mt-3 mb-7 text-ink">
+        <h1 className="text-[clamp(2rem,4vw,3rem)] mt-3 mb-7 text-ink">
           {query ? `"${query}"` : "All products"}
         </h1>
 
@@ -70,49 +62,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </p>
             <div className="product-grid">
               {results.map((p) => (
-                <article className="product-card" key={p.id}>
-                  <div className="product-card-image">
-                    {p.main_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img alt={p.name} src={p.main_image_url} />
-                    ) : (
-                      <div className="product-img-placeholder">
-                        <Package size={32} />
-                        <span>No image yet</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="product-card-body">
-                    <p className="product-card-category">{p.category.replace(/-/g, " ")}</p>
-                    <h3>{p.name}</h3>
-                    <p>{p.description.length > 100 ? `${p.description.slice(0, 100)}…` : p.description}</p>
-                    <div className="product-card-actions">
-                      <Link
-                        className="btn-primary flex-1 justify-center text-[0.88rem] py-2 px-3.5"
-                        href={`/reviews/${p.slug}`}
-                      >
-                        View Details
-                      </Link>
-                      {p.amazon_affiliate_url && (
-                        <a
-                          className="btn-affiliate text-[0.88rem] py-2 px-3.5"
-                          href={p.amazon_affiliate_url}
-                          rel="noopener noreferrer sponsored"
-                          target="_blank"
-                        >
-                          See Price <ExternalLink size={13} />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </article>
+                <ProductCard key={p.id} product={p} />
               ))}
             </div>
           </>
         ) : (
           <div className="py-16 text-center">
             <Search size={40} className="mx-auto mb-4 text-dust" />
-            <h3 className="text-[1.4rem] font-medium mb-3">
+            <h3 className="text-[1.4rem] mb-3">
               {query ? "No products found" : "Type something to search"}
             </h3>
             <p className="text-slate mb-6">

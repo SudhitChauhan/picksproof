@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ProductImage } from "@/components/ProductImage";
 import { redirect } from "next/navigation";
 import { Edit3, ImageIcon, PackageOpen, Plus, Trash2 } from "lucide-react";
 import { deleteProductAction } from "@/app/admin/products/new/actions";
@@ -49,7 +50,7 @@ export default async function AdminProductsPage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between mb-8">
           <div>
             <span className="eyebrow" style={{ color: "var(--signal-light)" }}>Admin Dashboard</span>
-            <h1 className="mt-3 text-5xl font-black tracking-tight text-admin-ink dark:text-white">
+            <h1 className="mt-3 text-5xl tracking-tight text-admin-ink dark:text-white">
               Products
             </h1>
             <p className="mt-3 text-base leading-7 text-admin-muted dark:text-slate-400">
@@ -88,16 +89,11 @@ export default async function AdminProductsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-4">
                           <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-admin-line bg-[#F4F4F4] dark:border-slate-700">
-                            {product.main_image_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                alt=""
-                                className="size-full object-contain p-2"
-                                src={product.main_image_url}
-                              />
-                            ) : (
-                              <ImageIcon className="size-5 text-admin-muted" />
-                            )}
+                            <ProductImage
+                              alt=""
+                              className="size-full object-contain p-2"
+                              src={product.main_image_url}
+                            />
                           </div>
                           <div>
                             <strong className="block text-sm text-admin-ink dark:text-white">
@@ -153,7 +149,7 @@ export default async function AdminProductsPage() {
               <div className="flex size-20 items-center justify-center rounded-[1.75rem] bg-[#F4F4F4] text-admin-muted dark:bg-slate-800">
                 <PackageOpen className="size-9" />
               </div>
-              <h2 className="mt-6 text-2xl font-black tracking-tight text-admin-ink dark:text-white">
+              <h2 className="mt-6 text-2xl tracking-tight text-admin-ink dark:text-white">
                 No products yet
               </h2>
               <p className="mt-3 max-w-md text-sm leading-6 text-admin-muted dark:text-slate-400">

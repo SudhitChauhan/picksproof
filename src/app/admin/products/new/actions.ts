@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { productFormToDbRow } from "@/lib/products/db-map";
 import {
   editProductFormSchema,
   productFormSchema,
@@ -45,14 +46,7 @@ export async function createProductAction(values: ProductFormValues): Promise<Cr
 
     const { data: product, error: productError } = await supabase
       .from("products")
-      .insert({
-        name: input.name,
-        description: input.description,
-        category: input.category,
-        slug: input.slug,
-        main_image_url: input.mainImageUrl,
-        amazon_affiliate_url: input.amazonAffiliateUrl
-      })
+      .insert(productFormToDbRow(input))
       .select("id")
       .single<{ id: string }>();
 
@@ -101,14 +95,7 @@ export async function updateProductAction(values: EditProductFormValues): Promis
 
     const { error: productError } = await supabase
       .from("products")
-      .update({
-        name: input.name,
-        description: input.description,
-        category: input.category,
-        slug: input.slug,
-        main_image_url: input.mainImageUrl,
-        amazon_affiliate_url: input.amazonAffiliateUrl
-      })
+      .update(productFormToDbRow(input))
       .eq("id", input.id);
 
     if (productError) {

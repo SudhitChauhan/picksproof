@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { getCategoryNavLabel } from "@/lib/category-visuals";
 import { categories } from "@/lib/data";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { Logo } from "./Logo";
 import { UserDropdown } from "./UserDropdown";
 
 async function getHeaderUser() {
@@ -33,15 +35,13 @@ export async function Header() {
   return (
     <div className="site-nav">
       {/* Logo */}
-      <Link className="logo" href="/">
-        PickProof
-      </Link>
+      <Logo variant="nav" />
 
       {/* Category links — public */}
       <nav aria-label="Primary navigation">
-        {categories.slice(0, 4).map((cat) => (
+        {categories.map((cat) => (
           <Link href={`/categories/${cat.slug}`} key={cat.slug}>
-            {cat.title.replace("Best ", "")}
+            {getCategoryNavLabel(cat.title)}
           </Link>
         ))}
       </nav>

@@ -46,15 +46,7 @@ export default async function ConfirmEmailPage({ searchParams }: Props) {
         <p className="eyebrow" style={{ justifyContent: "center", marginBottom: 12 }}>
           One more step
         </p>
-        <h1
-          style={{
-            fontSize: "clamp(1.8rem, 4vw, 2.4rem)",
-            fontWeight: 500,
-            letterSpacing: "-0.02em",
-            margin: "0 0 12px",
-            color: "var(--ink)"
-          }}
-        >
+        <h1 className="text-[clamp(1.8rem,4vw,2.4rem)] mb-3 text-ink">
           Check your inbox
         </h1>
         <p

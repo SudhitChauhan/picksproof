@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 import { redirect } from "next/navigation";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -49,7 +50,7 @@ async function login(formData: FormData) {
   redirect(isAdmin ? "/products" : "/profile");
 }
 
-export const metadata = { title: "Sign In — PickProof" };
+export const metadata = { title: "Sign In — PicksProof" };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (isSupabaseConfigured()) {
@@ -68,8 +69,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="w-full max-w-[460px]">
         {/* Branding */}
         <div className="text-center mb-8">
-          <p className="eyebrow justify-center">PickProof</p>
-          <h1 className="text-[clamp(1.8rem,4vw,2.4rem)] font-medium tracking-[-0.02em] mt-3 mb-2 text-ink">
+          <Logo variant="auth" />
+          <h1 className="text-[clamp(1.8rem,4vw,2.4rem)] mt-6 mb-2 text-ink">
             Sign in
           </h1>
           <p className="text-slate text-[0.95rem] leading-relaxed m-0">

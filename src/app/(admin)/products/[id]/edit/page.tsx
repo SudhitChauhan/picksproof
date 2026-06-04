@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { EditProductForm } from "@/app/(admin)/products/[id]/edit/EditProductForm";
+import { PRODUCT_DETAIL_COLUMNS } from "@/lib/products/types";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -28,7 +29,7 @@ export default async function EditProductPage({ params }: Props) {
 
   const { data: product, error: productError } = await supabase
     .from("products")
-    .select("id, name, description, category, slug, main_image_url, amazon_affiliate_url")
+    .select(PRODUCT_DETAIL_COLUMNS)
     .eq("id", id)
     .single();
 
@@ -53,7 +54,7 @@ export default async function EditProductPage({ params }: Props) {
 
         <div className="mt-6 mb-8">
           <span className="eyebrow">Edit Product</span>
-          <h1 className="mt-3 text-4xl font-black tracking-tight text-admin-ink dark:text-white md:text-5xl">
+          <h1 className="mt-3 text-4xl tracking-tight text-admin-ink dark:text-white md:text-5xl">
             {product.name}
           </h1>
           <p className="mt-3 text-base leading-7 text-admin-muted dark:text-slate-400">
@@ -61,25 +62,7 @@ export default async function EditProductPage({ params }: Props) {
           </p>
         </div>
 
-        <EditProductForm
-          product={product as {
-            id: string;
-            name: string;
-            description: string;
-            category: string;
-            slug: string;
-            main_image_url: string;
-            amazon_affiliate_url: string;
-          }}
-          specs={
-            (specs ?? []) as {
-              specification_title: string;
-              title: string;
-              description: string;
-              sort_order: number;
-            }[]
-          }
-        />
+        <EditProductForm product={product} specs={specs ?? []} />
       </div>
     </div>
   );

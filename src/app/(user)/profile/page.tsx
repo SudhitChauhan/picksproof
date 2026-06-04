@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { categories } from "@/lib/data";
 import { redirect } from "next/navigation";
 import { CalendarDays, ExternalLink, LogOut, Mail, Package, Search, User } from "lucide-react";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -43,7 +44,7 @@ export default async function ProfilePage() {
           <div className="mx-auto mb-4 flex h-22 w-22 items-center justify-center rounded-full bg-ink text-canvas text-[1.8rem] font-bold tracking-[-0.04em] shadow-[var(--shadow-md)] h-[88px] w-[88px]">
             {initials}
           </div>
-          <h1 className="text-[1.6rem] font-medium tracking-[-0.02em] mb-1 text-ink">
+          <h1 className="text-[1.6rem] mb-1 text-ink">
             {name || "Welcome back"}
           </h1>
           <p className="text-slate text-[0.9rem] m-0">{email}</p>
@@ -72,20 +73,16 @@ export default async function ProfilePage() {
 
         {/* Quick links */}
         <div className="rounded-[20px] border border-line bg-lifted p-5">
-          <p className="text-[0.72rem] font-black tracking-[0.06em] uppercase text-slate mb-3.5">
-            Quick links
-          </p>
+          <p className="eyebrow mb-3.5">Quick links</p>
           <div className="grid gap-2.5">
-            {[
-              { href: "/categories/best-laptops", label: "Best Laptops" },
-              { href: "/categories/smartphones",  label: "Smartphones" },
-              { href: "/categories/audio",         label: "Audio" },
-              { href: "/categories/electronics",   label: "Electronics" }
-            ].map(({ href, label }) => (
+            {categories.map((cat) => ({
+              href: `/categories/${cat.slug}`,
+              label: cat.title
+            })).map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="flex items-center justify-between text-[0.9rem] text-ink font-[450] py-1"
+                className="flex items-center justify-between text-[0.9rem] text-ink font-normal py-1"
               >
                 {label}
                 <ExternalLink size={13} className="text-dust" />
@@ -110,7 +107,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
       </div>
       <div>
         <p className="text-[0.75rem] font-bold text-slate mb-0.5 uppercase tracking-[0.04em]">{label}</p>
-        <p className="text-[0.95rem] text-ink m-0 font-[450]">{value}</p>
+        <p className="text-[0.95rem] text-ink m-0 font-normal">{value}</p>
       </div>
     </div>
   );
