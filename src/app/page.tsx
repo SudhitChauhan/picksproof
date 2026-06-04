@@ -3,55 +3,16 @@ import {
   ArrowRight,
   CheckCircle,
   ExternalLink,
-  Headphones,
-  Home,
-  Laptop,
   Package,
   Search,
-  ShieldCheck,
-  Smartphone,
-  Zap
+  ShieldCheck
 } from "lucide-react";
+import { ProductCard } from "@/components/ProductCard";
+import { getCategoryHeroImage, getCategoryIcon } from "@/lib/category-visuals";
 import { categories } from "@/lib/data";
+import { PRODUCT_LIST_COLUMNS } from "@/lib/products/types";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
-
-type ProductRow = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  slug: string;
-  main_image_url: string;
-  amazon_affiliate_url: string;
-};
-
-const CATEGORY_META: Record<string, { icon: React.ReactNode; image: string }> = {
-  "best-laptops": {
-    icon: <Laptop size={20} />,
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=700&q=75"
-  },
-  smartphones: {
-    icon: <Smartphone size={20} />,
-    image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=700&q=75"
-  },
-  electronics: {
-    icon: <Zap size={20} />,
-    image: "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=700&q=75"
-  },
-  audio: {
-    icon: <Headphones size={20} />,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=75"
-  },
-  home: {
-    icon: <Home size={20} />,
-    image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=700&q=75"
-  },
-  fitness: {
-    icon: <Package size={20} />,
-    image: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=700&q=75"
-  }
-};
 
 async function getPageData() {
   if (!isSupabaseConfigured()) return { products: [], isAdmin: false };
@@ -60,13 +21,13 @@ async function getPageData() {
     const [{ data: products }, { data: { session } }] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, description, category, slug, main_image_url, amazon_affiliate_url")
+        .select(PRODUCT_LIST_COLUMNS)
         .order("created_at", { ascending: false })
         .limit(6),
       supabase.auth.getSession()
     ]);
     return {
-      products: (products ?? []) as ProductRow[],
+      products: products ?? [],
       isAdmin: isAdminUser(session?.user ?? null)
     };
   } catch {
@@ -98,7 +59,7 @@ export default async function HomePage() {
         {isAdmin ? (
           <div className="hero-panel">
             <h2>Product Catalogue</h2>
-            <p className="text-[4rem]! font-black! tracking-[-0.06em]! text-canvas! my-4! leading-none!">
+            <p className="type-display text-[4rem]! text-canvas! my-4!">
               {products.length}
             </p>
             <p>Total published products. Add more from the admin dashboard.</p>
@@ -142,9 +103,7 @@ export default async function HomePage() {
         </div>
 
         <div className="category-grid">
-          {categories.map((cat) => {
-            const meta = CATEGORY_META[cat.slug];
-            return (
+          {categories.map((cat) => (
               <Link className="category-card" href={`/categories/${cat.slug}`} key={cat.slug}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -152,17 +111,16 @@ export default async function HomePage() {
                   aria-hidden="true"
                   className="category-card-bg"
                   loading="lazy"
-                  src={meta?.image ?? "https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&w=700&q=75"}
+                  src={getCategoryHeroImage(cat.slug)}
                 />
                 <div className="category-card-overlay" />
                 <div className="category-card-body">
-                  <div className="category-card-icon">{meta?.icon ?? <Package size={20} />}</div>
+                  <div className="category-card-icon">{getCategoryIcon(cat.slug, 20)}</div>
                   <h3>{cat.title}</h3>
                   <p>{cat.description}</p>
                 </div>
               </Link>
-            );
-          })}
+          ))}
         </div>
       </section>
 
@@ -180,7 +138,13 @@ export default async function HomePage() {
 
         {products.length > 0 ? (
           <div className="product-grid">
-            {products.map((p) => <ProductCard key={p.id} product={p} />)}
+            {products.map((p) => (
+              <ProductCard
+                key={p.id}
+                icon={getCategoryIcon(p.category, 32)}
+                product={p}
+              />
+            ))}
           </div>
         ) : (
           <EmptyProductsState />
@@ -216,56 +180,6 @@ export default async function HomePage() {
   );
 }
 
-/* ── Product card ──────────────────────────────────────────────────────────── */
-function ProductCard({ product: p }: { product: ProductRow }) {
-  const icon = {
-    "best-laptops": <Laptop size={32} strokeWidth={1.2} />,
-    smartphones:    <Smartphone size={32} strokeWidth={1.2} />,
-    electronics:    <Zap size={32} strokeWidth={1.2} />,
-    audio:          <Headphones size={32} strokeWidth={1.2} />,
-    home:           <Home size={32} strokeWidth={1.2} />
-  }[p.category] ?? <Package size={32} strokeWidth={1.2} />;
-
-  return (
-    <article className="product-card">
-      <div className="product-card-image">
-        {p.main_image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img alt={p.name} src={p.main_image_url} />
-        ) : (
-          <div className="product-img-placeholder">
-            {icon}
-            <span>No image yet</span>
-          </div>
-        )}
-      </div>
-      <div className="product-card-body">
-        <p className="product-card-category">{p.category.replace(/-/g, " ")}</p>
-        <h3>{p.name}</h3>
-        <p>{p.description.length > 110 ? `${p.description.slice(0, 110)}…` : p.description}</p>
-        <div className="product-card-actions">
-          <Link
-            className="btn-primary flex-1 justify-center text-[0.88rem] py-[9px] px-3.5"
-            href={`/reviews/${p.slug}`}
-          >
-            View Details
-          </Link>
-          {p.amazon_affiliate_url && (
-            <a
-              className="btn-affiliate text-[0.88rem] py-[9px] px-3.5"
-              href={p.amazon_affiliate_url}
-              rel="noopener noreferrer sponsored"
-              target="_blank"
-            >
-              See Price <ExternalLink size={13} />
-            </a>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
 /* ── Empty state ───────────────────────────────────────────────────────────── */
 function EmptyProductsState() {
   return (
@@ -283,7 +197,7 @@ function EmptyProductsState() {
         </div>
       </div>
       <div className="px-10 pb-11 pt-9 text-center">
-        <h3 className="text-[1.4rem] font-medium tracking-[-0.02em] mb-2.5 text-ink">
+        <h3 className="text-[1.4rem] mb-2.5 text-ink">
           Products coming soon
         </h3>
         <p className="text-slate mb-7 max-w-[360px] mx-auto">

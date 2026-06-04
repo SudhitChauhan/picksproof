@@ -1,29 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  ExternalLink,
-  Headphones,
-  Home,
-  Laptop,
-  Package,
-  Smartphone,
-  Zap
-} from "lucide-react";
+import { ArrowLeft, Check, ExternalLink } from "lucide-react";
+import { ProductTrustMeta } from "@/components/ProductTrustMeta";
+import { getCategory } from "@/lib/data";
+import { getCategoryIcon } from "@/lib/category-visuals";
+import { PRODUCT_DEFAULT_IMAGE } from "@/lib/products/sitestripe";
+import { PRODUCT_DETAIL_COLUMNS, type ProductRow } from "@/lib/products/types";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 type Props = { params: Promise<{ slug: string }> };
-
-type Product = {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  slug: string;
-  main_image_url: string;
-  amazon_affiliate_url: string;
-  created_at: string;
-};
 
 type Spec = {
   id: string;
@@ -33,22 +18,22 @@ type Spec = {
   sort_order: number;
 };
 
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "best-laptops": <Laptop size={20} />,
-  smartphones:    <Smartphone size={20} />,
-  electronics:    <Zap size={20} />,
-  audio:          <Headphones size={20} />,
-  home:           <Home size={20} />,
-  fitness:        <Package size={20} />
-};
+function categoryLabel(slug: string) {
+  return getCategory(slug)?.title ?? slug.replace(/-/g, " ");
+}
 
-async function getProductBySlug(slug: string): Promise<{ product: Product; specs: Spec[] } | null> {
+function truncateBreadcrumb(text: string, maxLength = 25): string {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength)}…`;
+}
+
+async function getProductBySlug(slug: string): Promise<{ product: ProductRow; specs: Spec[] } | null> {
   if (!isSupabaseConfigured()) return null;
   try {
     const supabase = await createServerSupabaseClient();
     const { data: product, error } = await supabase
       .from("products")
-      .select("*")
+      .select(PRODUCT_DETAIL_COLUMNS)
       .eq("slug", slug)
       .single();
     if (error || !product) return null;
@@ -57,7 +42,7 @@ async function getProductBySlug(slug: string): Promise<{ product: Product; specs
       .select("id, specification_title, title, description, sort_order")
       .eq("product_id", product.id)
       .order("sort_order", { ascending: true });
-    return { product: product as Product, specs: (specs ?? []) as Spec[] };
+    return { product: product as ProductRow, specs: (specs ?? []) as Spec[] };
   } catch {
     return null;
   }
@@ -88,41 +73,66 @@ export default async function ProductDetailPage({ params }: Props) {
   const { product, specs } = result;
   const specGroups = groupSpecs(specs);
   const specGroupKeys = Object.keys(specGroups);
-  const categoryIcon = CATEGORY_ICONS[product.category] ?? <Package size={20} />;
+  const categoryIcon = getCategoryIcon(product.category, 20);
+  const categoryName = categoryLabel(product.category);
+  const features = (product.features ?? []).filter(Boolean);
 
   return (
     <>
-      {/* Breadcrumb */}
       <div className="pp-section pb-0 pt-9">
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <Link href="/">Home</Link>
           <span aria-hidden="true" className="breadcrumb-sep">›</span>
           <Link href={`/categories/${product.category}`}>
             {categoryIcon}
-            {product.category.replace(/-/g, " ")}
+            {categoryName}
           </Link>
           <span aria-hidden="true" className="breadcrumb-sep">›</span>
-          <span className="breadcrumb-current">{product.name}</span>
+          <span className="breadcrumb-current" title={product.name}>
+            {truncateBreadcrumb(product.name)}
+          </span>
         </nav>
       </div>
 
-      {/* Product hero */}
       <section className="pp-section pb-10">
-        <div className="grid grid-cols-1 gap-14 lg:grid-cols-[minmax(0,1fr)_360px] items-start">
-
-          {/* Left: info */}
-          <div>
+        <div>
             <p className="eyebrow mb-3.5">
               <Link href={`/categories/${product.category}`} className="inline-flex items-center gap-1.5">
-                <ArrowLeft size={12} /> {product.category.replace(/-/g, " ")}
+                <ArrowLeft size={12} /> {categoryName}
               </Link>
             </p>
-            <h1 className="text-[clamp(1.8rem,4vw,3rem)] font-medium tracking-[-0.02em] leading-[1.1] mb-[18px] text-ink">
+            <h1 className="text-[clamp(1.8rem,4vw,3rem)] leading-[1.1] mb-[18px] text-ink">
               {product.name}
             </h1>
-            <p className="text-slate text-[1.05rem] leading-[1.75] mb-8">
+
+            <ProductTrustMeta
+              brand={product.brand}
+              amazonRating={product.amazon_rating}
+              amazonReviewCount={product.amazon_review_count}
+              bestsellerRank={product.bestseller_rank}
+              bestsellerCategory={product.bestseller_category}
+              modelNumber={product.model_number || undefined}
+              warranty={product.warranty || undefined}
+              countryOfOrigin={product.country_of_origin || undefined}
+            />
+
+            <p className="text-slate text-[1.05rem] leading-[1.75] mb-8 mt-6">
               {product.description}
             </p>
+
+            {features.length > 0 && (
+              <div className="mb-8">
+                <p className="eyebrow mb-3">Key features</p>
+                <ul className="product-feature-list">
+                  {features.map((f) => (
+                    <li key={f}>
+                      <Check size={16} className="shrink-0 text-signal" strokeWidth={2.5} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {product.amazon_affiliate_url && (
               <div className="flex flex-col gap-2.5">
@@ -135,7 +145,7 @@ export default async function ProductDetailPage({ params }: Props) {
                   See Price on Amazon.in <ExternalLink size={16} />
                 </a>
                 <p className="text-[0.78rem] text-dust m-0">
-                  * Affiliate link — prices and availability subject to change
+                  Affiliate link — check current price and availability on Amazon.in
                 </p>
               </div>
             )}
@@ -145,31 +155,21 @@ export default async function ProductDetailPage({ params }: Props) {
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-ink text-canvas text-[0.7rem] font-black">
                   {specs.length}
                 </span>
-                specification{specs.length !== 1 ? "s" : ""} listed below
+                specification{specs.length !== 1 ? "s" : ""} for comparison
               </div>
             )}
-          </div>
+        </div>
 
-          {/* Right: image */}
-          <div className="sticky top-6 aspect-square overflow-hidden rounded-[28px] bg-bone shadow-[var(--shadow-md)] flex items-center justify-center">
-            {product.main_image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt={product.name}
-                src={product.main_image_url}
-                className="h-full w-full object-contain p-6"
-              />
-            ) : (
-              <div className="product-img-placeholder rounded-[28px]">
-                <Package size={64} strokeWidth={1} />
-                <span>No image yet</span>
-              </div>
-            )}
-          </div>
+        <div className="mt-10 aspect-video w-full overflow-hidden rounded-[28px] bg-bone shadow-[var(--shadow-md)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt={product.name}
+            className="h-full w-full object-cover"
+            src={PRODUCT_DEFAULT_IMAGE}
+          />
         </div>
       </section>
 
-      {/* Specifications */}
       {specs.length > 0 && (
         <section className="pp-section pt-0">
           <div className="section-head mb-7">
@@ -195,20 +195,18 @@ export default async function ProductDetailPage({ params }: Props) {
                 key={group}
                 className={gi < specGroupKeys.length - 1 ? "border-b border-line" : ""}
               >
-                {/* Group header */}
                 <div className="flex items-center gap-2 bg-canvas px-7 py-3.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-signal-light shrink-0" />
                   <span className="text-[0.72rem] font-black tracking-[0.06em] uppercase text-slate">
                     {group}
                   </span>
                 </div>
-                {/* Spec rows */}
                 {specGroups[group].map((spec, si) => (
                   <div
                     key={spec.id}
                     className={`grid grid-cols-[1fr_1.6fr] gap-4 px-7 py-3.5 border-t border-line ${si % 2 !== 0 ? "bg-black/[0.015]" : ""}`}
                   >
-                    <span className="text-[0.9rem] font-medium text-ink">{spec.title}</span>
+                    <span className="text-[0.9rem] font-semibold text-ink">{spec.title}</span>
                     <span className="text-[0.9rem] text-slate">{spec.description}</span>
                   </div>
                 ))}
@@ -218,13 +216,12 @@ export default async function ProductDetailPage({ params }: Props) {
         </section>
       )}
 
-      {/* Bottom CTA banner */}
       {product.amazon_affiliate_url && (
         <section className="pp-section pt-0">
           <div className="flex flex-wrap items-center justify-between gap-8 rounded-[40px] bg-ink px-10 py-13 md:px-16 md:py-[52px]">
             <div>
               <p className="eyebrow text-signal-light mb-2.5">Ready to buy?</p>
-              <h2 className="text-[clamp(1.5rem,3vw,2rem)] font-medium tracking-[-0.02em] text-canvas mb-1.5">
+              <h2 className="text-[clamp(1.5rem,3vw,2rem)] text-canvas mb-1.5">
                 {product.name}
               </h2>
               <p className="text-canvas/60 m-0 text-[0.9rem]">

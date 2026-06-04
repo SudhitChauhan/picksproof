@@ -28,15 +28,7 @@ export default function UnauthorizedPage() {
         <p className="eyebrow" style={{ justifyContent: "center", marginBottom: 12 }}>Access Denied</p>
 
         <div className="auth-card" style={{ textAlign: "left" }}>
-          <h1
-            style={{
-              fontSize: "1.6rem",
-              fontWeight: 500,
-              letterSpacing: "-0.02em",
-              margin: "0 0 10px",
-              color: "var(--ink)"
-            }}
-          >
+          <h1 className="text-[1.6rem] mb-2.5 text-ink">
             Admin access required
           </h1>
           <p style={{ color: "var(--slate)", lineHeight: 1.7, margin: "0 0 28px" }}>

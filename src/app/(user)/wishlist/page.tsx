@@ -18,9 +18,7 @@ export default async function WishlistPage() {
   return (
     <section className="pp-section">
       <p className="eyebrow">Saved Products</p>
-      <h1 style={{ fontSize: "2.4rem", fontWeight: 500, letterSpacing: "-0.02em", margin: "12px 0 16px" }}>
-        Your Wishlist
-      </h1>
+      <h1 className="text-[2.4rem] my-3 mb-4 text-ink">Your Wishlist</h1>
       <p style={{ color: "var(--slate)", lineHeight: 1.7, maxWidth: 560, marginBottom: 32 }}>
         Wishlist functionality is coming soon. Browse and bookmark products to save them here.
       </p>
