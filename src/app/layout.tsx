@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Logo } from "@/components/Logo";
 import { categories } from "@/lib/data";
 import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -36,6 +37,7 @@ export default function RootLayout({
     <html lang="en" className={plusJakarta.variable}>
       <body className={`${plusJakarta.className} page-wrapper`}>
         <Analytics />
+        <SpeedInsights />
         <GlobalNavigationLoader />
         <Header />
         <main>{children}</main>
