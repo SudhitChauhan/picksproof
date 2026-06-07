@@ -48,6 +48,7 @@ export default function RootLayout({
               <div className="site-footer-col">
                 <Logo href="/" variant="footer" />
                 <a href="/">Home</a>
+                <a href="/about">About</a>
                 {categories.map((cat) => (
                   <a href={`/categories/${cat.slug}`} key={cat.slug}>
                     {cat.title}
@@ -64,7 +65,7 @@ export default function RootLayout({
                 <h4>Disclosure</h4>
                 <a href="#">Affiliate Policy</a>
                 <a href="#">Privacy</a>
-                <a href="#">Contact</a>
+                <a href="/contact">Contact</a>
               </div>
             </div>
             <div className="site-footer-bottom">
