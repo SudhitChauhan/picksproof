@@ -20,6 +20,18 @@
   --color-bone: #f4f4f4;
   --color-line: rgba(20, 20, 19, 0.12); /* border-line */
 
+  /* About page palette */
+  --color-about-cream: #f5efe8;
+  --color-about-dark: #1c1c1c;
+  --color-about-orange: #e85a1b;
+  --color-about-orange-hover: #d24e14;
+  --color-about-orange-soft: rgba(232, 90, 27, 0.12);
+  --color-about-orange-line: rgba(232, 90, 27, 0.22);
+  --color-about-muted: #6b6b6b;
+  --color-about-border: #e6ded3;
+  --color-about-body: #2a2a2a;
+  --color-about-body-dark: #e8e8e8;
+
   /* Admin tokens */
   --color-admin-ink: oklch(0.2 0.025 145);
   --color-admin-muted: oklch(0.48 0.03 145);
@@ -1013,6 +1025,7 @@
   }
 }
 
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .hero-frame {
@@ -1107,10 +1120,6 @@
   }
   .auth-card {
     padding: 36px 28px;
-  }
-
-  .page-wrapper {
-    gap: 16px;
   }
 }
 
