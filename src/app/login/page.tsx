@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { getAuthErrorKind, getSignInErrorMessage } from "@/lib/auth-errors";
 import { redirect } from "next/navigation";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string; reason?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 function getSafeNextPath(value: string | undefined) {
@@ -37,7 +38,8 @@ async function login(formData: FormData) {
 
   if (error) {
     const nextParam = next ? `&next=${encodeURIComponent(next)}` : "";
-    redirect(`/login?error=auth&reason=${encodeURIComponent(error.message)}${nextParam}`);
+    const errorKind = getAuthErrorKind(error);
+    redirect(`/login?error=${errorKind}${nextParam}`);
   }
 
   const isAdmin = isAdminUser(user);
@@ -60,9 +62,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   const params = await searchParams;
-  const hasError = params.error === "auth";
+  const errorKind = params.error === "server" || params.error === "auth" ? params.error : undefined;
+  const hasError = Boolean(errorKind);
   const next = getSafeNextPath(params.next);
-  const errorMessage = params.reason || "Could not sign in. Check your email and password.";
+  const errorMessage = getSignInErrorMessage(errorKind);
 
   return (
     <div className="auth-page">

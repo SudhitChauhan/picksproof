@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getAuthErrorKind } from "@/lib/auth-errors";
 import { isAdminUser } from "@/lib/supabase/auth";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
  * Handles the email-confirmation redirect from Supabase.
@@ -25,9 +26,8 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error || !data.session) {
-      return NextResponse.redirect(
-        `${origin}/login?error=auth&reason=${encodeURIComponent(error?.message ?? "Could not confirm email.")}`
-      );
+      const errorKind = error ? getAuthErrorKind(error) : "auth";
+      return NextResponse.redirect(`${origin}/login?error=${errorKind}`);
     }
 
     // Decide where to land based on role
@@ -40,6 +40,6 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(`${origin}${destination}`);
   } catch {
-    return NextResponse.redirect(`${origin}/login?error=auth&reason=confirmation_failed`);
+    return NextResponse.redirect(`${origin}/login?error=server`);
   }
 }

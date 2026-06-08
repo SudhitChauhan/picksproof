@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { GlobalNavigationLoader } from "@/components/GlobalNavigationLoader";
+import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { Logo } from "@/components/Logo";
-import { categories } from "@/lib/data";
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
@@ -41,41 +40,7 @@ export default function RootLayout({
         <GlobalNavigationLoader />
         <Header />
         <main>{children}</main>
-        <footer className="site-footer">
-          <div className="site-footer-inner">
-            <h2>We&apos;re always here when you need us.</h2>
-            <div className="site-footer-cols">
-              <div className="site-footer-col">
-                <Logo href="/" variant="footer" />
-                <a href="/">Home</a>
-                <a href="/about">About</a>
-                {categories.map((cat) => (
-                  <a href={`/categories/${cat.slug}`} key={cat.slug}>
-                    {cat.title}
-                  </a>
-                ))}
-              </div>
-              <div className="site-footer-col">
-                <h4>Account</h4>
-                <a href="/login">Sign In</a>
-                <a href="/register">Create Account</a>
-                <a href="/profile">Profile</a>
-              </div>
-              <div className="site-footer-col">
-                <h4>Disclosure</h4>
-                <a href="#">Affiliate Policy</a>
-                <a href="#">Privacy</a>
-                <a href="/contact">Contact</a>
-              </div>
-            </div>
-            <div className="site-footer-bottom">
-              <small>
-                © {new Date().getFullYear()} PicksProof. As an Amazon Associate we earn from qualifying purchases.
-              </small>
-              <small>Prices and availability may change.</small>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );

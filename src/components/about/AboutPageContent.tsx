@@ -245,19 +245,26 @@ export function AboutPageContent() {
               </p>
             </div>
             <p className="mt-8 text-[0.9rem] text-about-muted">
-              Read our full{" "}
+              Read our{" "}
               <Link
                 href="/affiliate-disclosure"
                 className="font-semibold text-about-orange underline underline-offset-[3px] hover:text-about-orange-hover"
               >
                 Affiliate Disclosure →
-              </Link>{" "}
-              and{" "}
+              </Link>
+              ,{" "}
               <Link
-                href="/editorial-policy"
+                href="/terms-and-conditions"
                 className="font-semibold text-about-orange underline underline-offset-[3px] hover:text-about-orange-hover"
               >
-                Editorial Policy →
+                Terms &amp; Conditions →
+              </Link>
+              , and{" "}
+              <Link
+                href="/privacy-policy"
+                className="font-semibold text-about-orange underline underline-offset-[3px] hover:text-about-orange-hover"
+              >
+                Privacy Policy →
               </Link>
             </p>
           </article>
