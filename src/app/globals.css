@@ -368,7 +368,7 @@
 
   /* ── Hero ────────────────────────────────────────────────────────────── */
   .hero-frame {
-    margin: 56px 48px 32px;
+    margin: 32px 48px 32px;
     border-radius: 40px;
     background: var(--ink);
     color: var(--canvas);
@@ -813,10 +813,20 @@
   }
   .site-footer-cols {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
+    grid-template-columns: 1.25fr 0.85fr 1.1fr 0.85fr;
+    gap: 40px 48px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     padding-top: 40px;
+  }
+  .site-footer-col--brand {
+    padding-right: 16px;
+  }
+  .site-footer-tagline {
+    margin: 16px 0 0;
+    max-width: 280px;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.55);
   }
   .site-footer-col h4 {
     font-size: 0.75rem;
@@ -826,6 +836,11 @@
     color: rgba(255, 255, 255, 0.48);
     margin: 0 0 16px;
   }
+  .site-footer-inline-divider {
+    height: 1px;
+    margin: 20px 0 16px;
+    background: rgba(255, 255, 255, 0.1);
+  }
   .site-footer-col a {
     display: block;
     font-size: 0.9rem;
@@ -833,6 +848,9 @@
     color: rgba(255, 255, 255, 0.78);
     margin-bottom: 12px;
     transition: color 0.15s;
+  }
+  .site-footer-col a:last-child {
+    margin-bottom: 0;
   }
   .site-footer-col a:hover {
     color: #fff;
@@ -842,14 +860,18 @@
     margin-top: 40px;
     padding-top: 24px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 8px;
   }
-  .site-footer-bottom small {
+  .site-footer-bottom-copy,
+  .site-footer-bottom-note {
+    margin: 0;
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.42);
+  }
+  .site-footer-bottom-note {
+    color: rgba(255, 255, 255, 0.32);
   }
 
   /* ── Auth forms ──────────────────────────────────────────────────────── */
@@ -1047,6 +1069,11 @@
   }
   .site-footer-cols {
     grid-template-columns: repeat(2, 1fr);
+    gap: 36px 32px;
+  }
+  .site-footer-col--brand {
+    grid-column: 1 / -1;
+    padding-right: 0;
   }
   .pp-section {
     padding: 64px 32px;

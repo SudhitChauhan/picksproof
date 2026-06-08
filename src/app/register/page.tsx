@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { getAuthErrorKind, getSignUpErrorMessage } from "@/lib/auth-errors";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 type RegisterPageProps = {
-  searchParams: Promise<{ error?: string; reason?: string }>;
+  searchParams: Promise<{ error?: string }>;
 };
 
 async function register(formData: FormData) {
@@ -37,7 +38,8 @@ async function register(formData: FormData) {
     }));
 
   if (error) {
-    redirect(`/register?error=signup&reason=${encodeURIComponent(error.message)}`);
+    const errorKind = getAuthErrorKind(error);
+    redirect(`/register?error=${errorKind}`);
   }
 
   // Email confirmation is DISABLED in Supabase → session returned immediately
@@ -53,8 +55,9 @@ export const metadata = { title: "Create Account — PicksProof" };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
-  const hasError = params.error === "signup";
-  const errorMessage = params.reason || "Could not create your account. Please try again.";
+  const errorKind = params.error === "server" || params.error === "auth" ? params.error : undefined;
+  const hasError = Boolean(errorKind);
+  const errorMessage = getSignUpErrorMessage(errorKind);
 
   return (
     <div className="auth-page">
