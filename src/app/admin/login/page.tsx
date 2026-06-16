@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { ADMIN_ROUTES, isAdminAppPath } from "@/lib/admin/routes";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -7,10 +8,8 @@ type LoginPageProps = {
 };
 
 function getSafeNextPath(value: string | undefined) {
-  const isAdminPath = value?.startsWith("/admin") || value?.startsWith("/products");
-
-  if (!value || !isAdminPath || value.startsWith("//")) {
-    return "/products";
+  if (!value || !isAdminAppPath(value) || value.startsWith("//")) {
+    return ADMIN_ROUTES.dashboard;
   }
 
   return value;

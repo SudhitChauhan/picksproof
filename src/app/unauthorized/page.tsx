@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { ArrowLeft, ShieldOff } from "lucide-react";
+import { buildLoginHref } from "@/lib/auth/redirect";
 
 export const metadata = { title: "Unauthorized — PickProof" };
 
-export default function UnauthorizedPage() {
+type Props = {
+  searchParams: Promise<{ next?: string }>;
+};
+
+export default async function UnauthorizedPage({ searchParams }: Props) {
+  const { next } = await searchParams;
+  const loginHref = buildLoginHref(next);
   return (
     <div className="auth-page">
       <div style={{ width: "100%", maxWidth: 480, textAlign: "center" }}>
@@ -36,7 +43,7 @@ export default function UnauthorizedPage() {
             error, contact the site owner to have your account upgraded.
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link className="btn-primary" href="/login" style={{ gap: 6 }}>
+            <Link className="btn-primary" href={loginHref} style={{ gap: 6 }}>
               Sign in as admin
             </Link>
             <Link className="btn-outline" href="/" style={{ gap: 6 }}>

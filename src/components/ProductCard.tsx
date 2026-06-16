@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { ExternalLink, Star } from "lucide-react";
+import { ArrowRight, ExternalLink, Star } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 import { getCategory } from "@/lib/data";
 import type { ProductRow } from "@/lib/products/types";
 
 type CardProduct = Pick<
   ProductRow,
+  | "id"
   | "name"
   | "description"
   | "category"
   | "slug"
+  | "main_image_url"
   | "amazon_affiliate_url"
   | "brand"
   | "amazon_rating"
@@ -17,57 +20,84 @@ type CardProduct = Pick<
 
 type Props = {
   product: CardProduct;
-  icon?: React.ReactNode;
+  compareMode?: boolean;
+  compareSelected?: boolean;
+  compareDisabled?: boolean;
+  onCompareToggle?: () => void;
 };
 
-export function ProductCard({ product: p, icon }: Props) {
+export function ProductCard({
+  product: p,
+  compareMode = false,
+  compareSelected = false,
+  compareDisabled = false,
+  onCompareToggle
+}: Props) {
   const categoryLabel =
     getCategory(p.category)?.title ?? p.category.replace(/-/g, " ");
-  const metaLabel = [p.brand, categoryLabel].filter(Boolean).join(" · ");
 
   return (
-    <article className="product-card">
+    <article className={`product-card ${compareSelected ? "is-compare-selected" : ""}`}>
+      <div className="product-card-media-wrap">
+        {compareMode ? (
+          <label className="product-card-compare">
+            <input
+              checked={compareSelected}
+              disabled={compareDisabled}
+              onChange={onCompareToggle}
+              type="checkbox"
+            />
+            <span>Compare</span>
+          </label>
+        ) : null}
+
+        <Link className="product-card-media" href={`/reviews/${p.slug}`}>
+          <ProductImage
+            alt={p.name}
+            className="product-card-image"
+            src={p.main_image_url}
+          />
+        </Link>
+      </div>
+
       <div className="product-card-body">
-        <div className="product-card-head">
-          {icon ? <span className="product-card-icon">{icon}</span> : null}
-          {metaLabel ? <p className="product-card-category">{metaLabel}</p> : null}
-        </div>
+        {categoryLabel ? <p className="product-card-eyebrow">{categoryLabel}</p> : null}
 
         <h3 className="product-card-title">
           <Link href={`/reviews/${p.slug}`}>{p.name}</Link>
         </h3>
 
-        {p.amazon_rating != null && (
-          <p className="product-card-rating">
-            <Star size={14} className="fill-signal text-signal shrink-0" />
-            <span>{p.amazon_rating.toFixed(1)}</span>
-            {p.amazon_review_count != null && (
-              <span className="product-card-rating-meta">
-                {formatCount(p.amazon_review_count)} reviews on Amazon
-              </span>
-            )}
-          </p>
-        )}
-
-        {p.description ? <p className="product-card-desc">{p.description}</p> : null}
+        <div className="product-card-meta">
+          {p.brand ? <span className="product-card-brand">{p.brand}</span> : null}
+          {p.amazon_rating != null ? (
+            <span className="product-card-rating">
+              <Star aria-hidden className="product-card-rating-star" size={13} />
+              <span>{p.amazon_rating.toFixed(1)}</span>
+              {p.amazon_review_count != null ? (
+                <span className="product-card-rating-count">
+                  ({formatCount(p.amazon_review_count)})
+                </span>
+              ) : null}
+            </span>
+          ) : null}
+        </div>
 
         <div className="product-card-actions">
-          <Link
-            className="btn-primary flex-1 justify-center text-[0.88rem] py-[9px] px-3.5"
-            href={`/reviews/${p.slug}`}
-          >
-            View Details
-          </Link>
           {p.amazon_affiliate_url ? (
             <a
-              className="btn-affiliate text-[0.88rem] py-[9px] px-3.5"
+              className="product-card-btn product-card-btn--accent"
               href={p.amazon_affiliate_url}
               rel="noopener noreferrer sponsored"
               target="_blank"
             >
-              See Price <ExternalLink size={13} />
+              <span>See price</span>
+              <ExternalLink aria-hidden className="product-card-btn-icon" size={14} />
             </a>
           ) : null}
+          <Link className="product-card-btn product-card-btn--ghost" href={`/reviews/${p.slug}`}>
+            <span>View review</span>
+            <ArrowRight aria-hidden className="product-card-btn-icon" size={14} />
+          </Link>
         </div>
       </div>
     </article>

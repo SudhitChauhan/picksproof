@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Check, ExternalLink } from "lucide-react";
 import { ProductTrustMeta } from "@/components/ProductTrustMeta";
+import { getProductImageSrc } from "@/lib/products/image-src";
 import { getCategory } from "@/lib/data";
 import { getCategoryIcon } from "@/lib/category-visuals";
-import { PRODUCT_DEFAULT_IMAGE } from "@/lib/products/sitestripe";
 import { PRODUCT_DETAIL_COLUMNS, type ProductRow } from "@/lib/products/types";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
@@ -76,6 +76,7 @@ export default async function ProductDetailPage({ params }: Props) {
   const categoryIcon = getCategoryIcon(product.category, 20);
   const categoryName = categoryLabel(product.category);
   const features = (product.features ?? []).filter(Boolean);
+  const heroImage = getProductImageSrc(product.main_image_url);
 
   return (
     <>
@@ -160,12 +161,12 @@ export default async function ProductDetailPage({ params }: Props) {
             )}
         </div>
 
-        <div className="mt-10 aspect-video w-full overflow-hidden rounded-[28px] bg-bone shadow-[var(--shadow-md)]">
+        <div className="mt-10 aspect-[4/3] w-full overflow-hidden rounded-[28px] border border-line bg-bone shadow-[var(--shadow-md)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt={product.name}
-            className="h-full w-full object-cover"
-            src={PRODUCT_DEFAULT_IMAGE}
+            className="h-full w-full object-contain p-6"
+            src={heroImage}
           />
         </div>
       </section>

@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ws-na.amazon-adsystem.com" },
       { protocol: "https", hostname: "ws-eu.amazon-adsystem.com" },
       { protocol: "https", hostname: "ws-fe.amazon-adsystem.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
       {
         protocol: "https",
         hostname: "images.unsplash.com"

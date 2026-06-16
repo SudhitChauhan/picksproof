@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { buildLoginHref } from "@/lib/auth/redirect";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 export const metadata = { title: "Wishlist — PickProof" };
 export const dynamic = "force-dynamic";
 
 export default async function WishlistPage() {
-  if (!isSupabaseConfigured()) redirect("/login");
+  if (!isSupabaseConfigured()) redirect(buildLoginHref("/wishlist"));
 
   const supabase = await createServerSupabaseClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect(buildLoginHref("/wishlist"));
 
   return (
     <section className="pp-section">

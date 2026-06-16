@@ -1,10 +1,8 @@
 "use client";
 
-// import { useState } from "react";
-// import {
-//   isValidSiteStripeImageUrl,
-//   PRODUCT_IMAGE_PLACEHOLDER
-// } from "@/lib/products/sitestripe";
+import { useState } from "react";
+import { LOGO_ALT, LOGO_SRC } from "@/components/Logo";
+import { getProductImageSrc, isProductImageMissing } from "@/lib/products/image-src";
 
 type Props = {
   src?: string | null;
@@ -12,21 +10,31 @@ type Props = {
   className?: string;
 };
 
-export function ProductImage({ src: _src, alt: _alt, className: _className }: Props) {
-  // const [failed, setFailed] = useState(false);
-  // const valid =
-  //   !failed && typeof src === "string" && isValidSiteStripeImageUrl(src);
-  // const displaySrc = valid ? src : PRODUCT_IMAGE_PLACEHOLDER;
+export function ProductImage({ src, alt, className }: Props) {
+  const [failed, setFailed] = useState(false);
+  const missing = failed || isProductImageMissing(src);
 
-  return null;
+  if (missing) {
+    return (
+      <div
+        aria-label={alt || LOGO_ALT}
+        className={`product-img-placeholder ${className ?? ""}`.trim()}
+        role="img"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img alt="" className="product-img-placeholder-logo" src={LOGO_SRC} />
+      </div>
+    );
+  }
 
-  // return (
-  //   // eslint-disable-next-line @next/next/no-img-element
-  //   <img
-  //     alt={alt}
-  //     className={className}
-  //     onError={() => setFailed(true)}
-  //     src={displaySrc}
-  //   />
-  // );
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      alt={alt}
+      className={className}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      src={getProductImageSrc(src)}
+    />
+  );
 }

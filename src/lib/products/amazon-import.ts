@@ -164,6 +164,42 @@ function buildDescription(features: string[]): string {
   return bullets.length > 400 ? `${bullets.slice(0, 397)}…` : bullets;
 }
 
+/** Parse one object, a JSON array, or multiple objects separated by blank lines. */
+export function parseAmazonJsonInput(text: string): AmazonScraperProduct[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed.filter((item) => item && typeof item === "object") as AmazonScraperProduct[];
+    }
+    if (parsed && typeof parsed === "object") {
+      return [parsed as AmazonScraperProduct];
+    }
+  } catch {
+    // fall through to block parsing
+  }
+
+  const blocks = trimmed.split(/\n\s*\n+/).map((block) => block.trim()).filter(Boolean);
+  const results: AmazonScraperProduct[] = [];
+
+  for (const block of blocks) {
+    try {
+      const parsed = JSON.parse(block) as unknown;
+      if (Array.isArray(parsed)) {
+        results.push(...(parsed.filter((item) => item && typeof item === "object") as AmazonScraperProduct[]));
+      } else if (parsed && typeof parsed === "object") {
+        results.push(parsed as AmazonScraperProduct);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return results;
+}
+
 /** Map scraper JSON → admin form defaults (no price, seller, or review text). */
 export function amazonJsonToProductForm(json: AmazonScraperProduct): Partial<ProductFormInput> {
   const title = json.title?.trim() ?? "";

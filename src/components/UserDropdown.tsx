@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 
 type Props = {
   email: string;
@@ -80,7 +81,7 @@ export function UserDropdown({ email, isAdmin, logoutAction }: Props) {
 
           {isAdmin && (
             <Link
-              href="/products"
+              href={ADMIN_ROUTES.dashboard}
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-sm font-medium text-ink hover:bg-canvas transition-colors"
             >

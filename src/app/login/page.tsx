@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/Logo";
+import { LoginLink } from "@/components/LoginLink";
+import { RegisterLink } from "@/components/RegisterLink";
 import { getAuthErrorKind, getSignInErrorMessage } from "@/lib/auth-errors";
+import { ADMIN_ROUTES, isAdminAppPath } from "@/lib/admin/routes";
+import { getSafeNextPath } from "@/lib/auth/redirect";
 import { redirect } from "next/navigation";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -9,13 +14,8 @@ type LoginPageProps = {
   searchParams: Promise<{ error?: string; next?: string }>;
 };
 
-function getSafeNextPath(value: string | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "";
-  return value;
-}
-
 function isAdminPath(value: string) {
-  return value.startsWith("/admin") || value.startsWith("/products");
+  return isAdminAppPath(value);
 }
 
 async function login(formData: FormData) {
@@ -49,22 +49,26 @@ async function login(formData: FormData) {
   }
 
   if (next) redirect(next);
-  redirect(isAdmin ? "/products" : "/profile");
+  redirect(isAdmin ? ADMIN_ROUTES.dashboard : "/profile");
 }
 
 export const metadata = { title: "Sign In — PicksProof" };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const next = getSafeNextPath(params.next);
+
   if (isSupabaseConfigured()) {
     const supabase = await createServerSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) redirect("/profile");
+    if (session) {
+      if (next) redirect(next);
+      redirect(isAdminUser(session.user) ? ADMIN_ROUTES.dashboard : "/profile");
+    }
   }
 
-  const params = await searchParams;
   const errorKind = params.error === "server" || params.error === "auth" ? params.error : undefined;
   const hasError = Boolean(errorKind);
-  const next = getSafeNextPath(params.next);
   const errorMessage = getSignInErrorMessage(errorKind);
 
   return (
@@ -116,9 +120,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
               <p className="text-center text-[0.8rem] text-slate m-0">
                 New here?{" "}
-                <Link href="/register" className="text-ink font-semibold">
-                  Create an account
-                </Link>
+                <Suspense fallback={<Link href="/register" className="text-ink font-semibold">Create an account</Link>}>
+                  <RegisterLink className="text-ink font-semibold">Create an account</RegisterLink>
+                </Suspense>
               </p>
             </form>
           )}

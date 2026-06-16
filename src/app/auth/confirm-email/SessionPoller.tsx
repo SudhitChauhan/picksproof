@@ -2,19 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getSafeNextPath } from "@/lib/auth/redirect";
+
+type Props = {
+  next?: string;
+};
 
 /**
  * Polls /api/auth/session every 3 seconds.
  * When the user clicks the confirmation link (even in another tab),
  * Supabase creates a session cookie; the next poll detects it and
- * auto-redirects to /profile — no password re-entry needed.
+ * auto-redirects — no password re-entry needed.
  */
-export function SessionPoller() {
+export function SessionPoller({ next }: Props) {
   const router = useRouter();
   const [dots, setDots] = useState(".");
+  const destination = getSafeNextPath(next) || "/profile";
 
   useEffect(() => {
-    // Animated dots so the user can see it's actively checking
     const dotTimer = setInterval(() => {
       setDots((d) => (d.length >= 3 ? "." : d + "."));
     }, 600);
@@ -24,7 +29,7 @@ export function SessionPoller() {
         const res = await fetch("/api/auth/session", { cache: "no-store" });
         const { authenticated } = (await res.json()) as { authenticated: boolean };
         if (authenticated) {
-          router.replace("/profile");
+          router.replace(destination);
         }
       } catch {
         // ignore network hiccups
@@ -35,7 +40,7 @@ export function SessionPoller() {
       clearInterval(dotTimer);
       clearInterval(sessionTimer);
     };
-  }, [router]);
+  }, [destination, router]);
 
   return (
     <p

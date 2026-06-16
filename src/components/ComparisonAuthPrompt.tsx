@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildLoginHref } from "@/lib/auth/redirect";
 
 type Props = {
   categoryTitle: string;
@@ -7,7 +8,7 @@ type Props = {
 
 /** Shown when anonymous users try to access product comparison. */
 export function ComparisonAuthPrompt({ categoryTitle, returnTo }: Props) {
-  const loginHref = `/login?next=${encodeURIComponent(returnTo)}`;
+  const loginHref = buildLoginHref(returnTo);
 
   return (
     <div className="rounded-[28px] border border-line bg-canvas px-8 py-10 text-center">

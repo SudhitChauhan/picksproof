@@ -1,7 +1,22 @@
 import Link from "next/link";
-import { categories } from "@/lib/data";
 import { redirect } from "next/navigation";
-import { CalendarDays, ExternalLink, LogOut, Mail, Package, Search, User } from "lucide-react";
+import {
+  CalendarDays,
+  ExternalLink,
+  Heart,
+  LogOut,
+  Mail,
+  Package,
+  Search,
+  Shield,
+  User
+} from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
+import { buildLoginHref } from "@/lib/auth/redirect";
+import { formatAdminUsername } from "@/lib/admin/format-username";
+import { categories } from "@/lib/data";
+import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 async function logout() {
@@ -17,17 +32,24 @@ export const metadata = { title: "Profile — PickProof" };
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  if (!isSupabaseConfigured()) redirect("/login");
+  if (!isSupabaseConfigured()) redirect(buildLoginHref("/profile"));
 
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) redirect(buildLoginHref("/profile"));
 
-  const name = (user.user_metadata?.name as string | undefined) ?? "";
+  const isAdmin = isAdminUser(user);
+  const name = (user.user_metadata?.name as string | undefined)?.trim() ?? "";
+  const displayName = name || formatAdminUsername(user.email ?? "");
   const email = user.email ?? "";
-  const initials = name
-    ? name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
-    : email[0]?.toUpperCase() ?? "U";
+  const initials = displayName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   const joinedAt = new Date(user.created_at).toLocaleDateString("en-IN", {
     year: "numeric",
@@ -36,64 +58,85 @@ export default async function ProfilePage() {
   });
 
   return (
-    <div className="flex min-h-[calc(100vh-80px)] items-start justify-center px-6 pb-20 pt-16">
-      <div className="w-full max-w-[520px]">
-
-        {/* Avatar + name */}
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-22 w-22 items-center justify-center rounded-full bg-ink text-canvas text-[1.8rem] font-bold tracking-[-0.04em] shadow-[var(--shadow-md)] h-[88px] w-[88px]">
-            {initials}
-          </div>
-          <h1 className="text-[1.6rem] mb-1 text-ink">
-            {name || "Welcome back"}
-          </h1>
-          <p className="text-slate text-[0.9rem] m-0">{email}</p>
+    <div className="profile-page">
+      <div className="profile-page-inner">
+        <div className="profile-brand">
+          <Logo href="/" variant="auth" />
         </div>
 
-        {/* Info card */}
-        <div className="auth-card mb-4">
-          <div className="grid gap-5">
-            <InfoRow icon={<User size={16} />} label="Full name" value={name || "—"} />
+        <div className="profile-hero">
+          <div className="profile-avatar">{initials}</div>
+          <h1>{displayName}</h1>
+          <p>{email}</p>
+          <span className={`profile-badge ${isAdmin ? "profile-badge--admin" : ""}`}>
+            {isAdmin ? "Member + Administrator" : "Standard member"}
+          </span>
+        </div>
+
+        <div className="profile-card">
+          <h2>Account details</h2>
+          <div className="profile-info-grid">
+            <InfoRow icon={<User size={16} />} label="Display name" value={displayName} />
             <InfoRow icon={<Mail size={16} />} label="Email address" value={email} />
             <InfoRow icon={<CalendarDays size={16} />} label="Member since" value={joinedAt} />
-            <InfoRow icon={<Package size={16} />} label="Account type" value="Standard user" />
+            <InfoRow
+              icon={<Package size={16} />}
+              label="Account type"
+              value={isAdmin ? "Public member profile" : "Shopping member"}
+            />
           </div>
+        </div>
 
-          <div className="mt-6 pt-6 border-t border-line grid gap-2.5">
-            <Link className="btn-outline justify-center" href="/">
-              <Search size={15} /> Browse products
+        <div className="profile-card">
+          <h2>Quick actions</h2>
+          <div className="profile-actions">
+            <Link className="btn-primary profile-action" href="/">
+              <Search size={16} />
+              Browse products
             </Link>
+            <Link className="btn-outline profile-action" href="/wishlist">
+              <Heart size={16} />
+              My wishlist
+            </Link>
+            {isAdmin ? (
+              <Link className="btn-outline profile-action" href={ADMIN_ROUTES.dashboard}>
+                <Shield size={16} />
+                Admin workspace
+              </Link>
+            ) : null}
             <form action={logout}>
-              <button className="btn-primary w-full justify-center" type="submit">
-                <LogOut size={15} /> Sign out
+              <button className="btn-outline profile-action profile-action--danger w-full" type="submit">
+                <LogOut size={16} />
+                Sign out
               </button>
             </form>
           </div>
         </div>
 
-        {/* Quick links */}
-        <div className="rounded-[20px] border border-line bg-lifted p-5">
-          <p className="eyebrow mb-3.5">Quick links</p>
-          <div className="grid gap-2.5">
-            {categories.map((cat) => ({
-              href: `/categories/${cat.slug}`,
-              label: cat.title
-            })).map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center justify-between text-[0.9rem] text-ink font-normal py-1"
-              >
-                {label}
-                <ExternalLink size={13} className="text-dust" />
+        <div className="profile-card">
+          <p className="eyebrow">Explore categories</p>
+          <div className="profile-links">
+            {categories.map((cat) => (
+              <Link className="profile-link" href={`/categories/${cat.slug}`} key={cat.slug}>
+                <span>{cat.title}</span>
+                <ExternalLink size={14} />
               </Link>
             ))}
           </div>
         </div>
 
-        <p className="mt-5 text-center text-[0.78rem] text-dust">
-          Admin access is managed via Supabase app metadata.
-        </p>
+        {isAdmin ? (
+          <p className="profile-footnote">
+            Admin catalogue tools live in the{" "}
+            <Link href={ADMIN_ROUTES.profile}>admin profile</Link>. This page is your public member
+            account on PickProof.
+          </p>
+        ) : (
+          <p className="profile-footnote">
+            Save picks to your wishlist and browse verified affiliate recommendations across
+            categories.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -101,13 +144,11 @@ export default async function ProfilePage() {
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3.5">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-line bg-canvas text-slate">
-        {icon}
-      </div>
+    <div className="profile-info-row">
+      <div className="profile-info-icon">{icon}</div>
       <div>
-        <p className="text-[0.75rem] font-bold text-slate mb-0.5 uppercase tracking-[0.04em]">{label}</p>
-        <p className="text-[0.95rem] text-ink m-0 font-normal">{value}</p>
+        <p className="profile-info-label">{label}</p>
+        <p className="profile-info-value">{value}</p>
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export function AboutHero() {
         priority
       />
 
-      <div className="absolute bottom-14 left-1/2 z-[2] w-[calc(100%-96px)] max-w-[1240px] -translate-x-1/2 rounded-[40px] border border-[rgba(230,222,211,0.9)] bg-white p-10 px-14 shadow-[0_20px_48px_rgba(28,28,28,0.12)] backdrop-blur-sm max-lg:w-[calc(100%-64px)] max-lg:p-8 max-lg:px-9 max-md:relative max-md:bottom-auto max-md:left-auto max-md:w-full max-md:translate-x-0 max-md:rounded-[28px_28px_0_0] max-md:p-7 max-md:px-6 max-md:pb-8">
+      <div className="absolute bottom-14 left-1/2 z-[2] w-[calc(100%-96px)] max-w-[1440px] -translate-x-1/2 rounded-[40px] border border-[rgba(230,222,211,0.9)] bg-white p-10 px-14 shadow-[0_20px_48px_rgba(28,28,28,0.12)] backdrop-blur-sm max-lg:w-[calc(100%-64px)] max-lg:p-8 max-lg:px-9 max-md:relative max-md:bottom-auto max-md:left-auto max-md:w-full max-md:translate-x-0 max-md:rounded-[28px_28px_0_0] max-md:p-7 max-md:px-6 max-md:pb-8">
         <Sparkles
           size={22}
           strokeWidth={1.5}
