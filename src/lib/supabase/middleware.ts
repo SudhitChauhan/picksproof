@@ -1,13 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminUser } from "@/lib/supabase/auth";
+import { isAdminAppPath } from "@/lib/admin/routes";
 import { createSupabaseFetch } from "@/lib/supabase/fetch";
 
 function getSafeNextPath(value: string | null) {
-  const isAdminPath = value?.startsWith("/admin") || value?.startsWith("/products");
-
-  if (!value || !isAdminPath || value.startsWith("//")) {
-    return "/products";
+  if (!value || !isAdminAppPath(value) || value.startsWith("//")) {
+    return "/admin/dashboard";
   }
 
   return value;

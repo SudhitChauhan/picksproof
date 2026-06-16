@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthErrorKind } from "@/lib/auth-errors";
+import { getSafeNextPath } from "@/lib/auth/redirect";
 import { isAdminUser } from "@/lib/supabase/auth";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 /**
@@ -14,7 +16,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "";
+  const next = getSafeNextPath(searchParams.get("next"));
 
   if (!code) {
     // Missing code — fall back to home
@@ -32,11 +34,8 @@ export async function GET(request: Request) {
 
     // Decide where to land based on role
     const destination =
-      next && next.startsWith("/")
-        ? next
-        : isAdminUser(data.session.user)
-          ? "/products"
-          : "/profile";
+      next ||
+      (isAdminUser(data.session.user) ? ADMIN_ROUTES.dashboard : "/profile");
 
     return NextResponse.redirect(`${origin}${destination}`);
   } catch {

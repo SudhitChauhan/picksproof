@@ -1,9 +1,20 @@
 /** Amazon Associates SiteStripe image hosts (regional adsystem endpoints). */
 const SITESTRIPE_IMAGE_HOST_PATTERN = /amazon-adsystem\.com$/i;
 
-export const PRODUCT_IMAGE_PLACEHOLDER = "/images/product-placeholder.svg";
+/** Fallback when a product has no image — uses the site logo. */
+export const PRODUCT_IMAGE_PLACEHOLDER = "/images/picksproof-logo.png";
 /** Shared 16:9 marketing fallback for product detail (until per-product images are enabled). */
 export const PRODUCT_DEFAULT_IMAGE = "/images/product-marketing.jpg";
+
+export function isValidHttpsImageUrl(url: string): boolean {
+  if (!url.trim()) return false;
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 export function isValidSiteStripeImageUrl(url: string): boolean {
   if (!url.trim()) return false;
@@ -19,6 +30,12 @@ export function isValidSiteStripeImageUrl(url: string): boolean {
 export function sanitizeSiteStripeImageUrl(url: string | null | undefined): string {
   const trimmed = url?.trim() ?? "";
   return isValidSiteStripeImageUrl(trimmed) ? trimmed : "";
+}
+
+/** Any https image URL suitable for Cloudinary remote fetch. */
+export function sanitizeRemoteImageUrl(url: string | null | undefined): string {
+  const trimmed = url?.trim() ?? "";
+  return isValidHttpsImageUrl(trimmed) ? trimmed : "";
 }
 
 export function parseSiteStripe(html: string): { imageUrl: string; affiliateUrl: string } {
@@ -37,7 +54,7 @@ export function parseSiteStripe(html: string): { imageUrl: string; affiliateUrl:
       link?.querySelector<HTMLImageElement>("img") ??
       doc.querySelector<HTMLImageElement>('img:not([width="1"]):not([height="1"])');
     const rawImage = img?.getAttribute("src") ?? "";
-    const imageUrl = sanitizeSiteStripeImageUrl(rawImage);
+    const imageUrl = sanitizeRemoteImageUrl(rawImage);
     return { affiliateUrl, imageUrl };
   } catch {
     return { imageUrl: "", affiliateUrl: "" };

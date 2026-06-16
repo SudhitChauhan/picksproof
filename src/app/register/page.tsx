@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Logo } from "@/components/Logo";
+import { LoginLink } from "@/components/LoginLink";
 import { getAuthErrorKind, getSignUpErrorMessage } from "@/lib/auth-errors";
+import { getSafeNextPath } from "@/lib/auth/redirect";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 type RegisterPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 async function register(formData: FormData) {
@@ -14,11 +17,15 @@ async function register(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = getSafeNextPath(String(formData.get("next") ?? ""));
 
   // Use the env-configured site URL so the confirmation email always
   // points to the right domain (not localhost when running in production,
   // not a production URL when testing locally).
   const origin = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const callbackUrl = next
+    ? `${origin}/auth/callback?next=${encodeURIComponent(next)}`
+    : `${origin}/auth/callback`;
 
   const supabase = await createServerSupabaseClient();
 
@@ -28,8 +35,7 @@ async function register(formData: FormData) {
       password,
       options: {
         data: { name, role: "user" },
-        // Supabase will append ?code=... to this URL
-        emailRedirectTo: `${origin}/auth/callback`
+        emailRedirectTo: callbackUrl
       }
     })
     .catch((e) => ({
@@ -39,22 +45,26 @@ async function register(formData: FormData) {
 
   if (error) {
     const errorKind = getAuthErrorKind(error);
-    redirect(`/register?error=${errorKind}`);
+    const nextParam = next ? `&next=${encodeURIComponent(next)}` : "";
+    redirect(`/register?error=${errorKind}${nextParam}`);
   }
 
   // Email confirmation is DISABLED in Supabase → session returned immediately
   if (data?.session) {
+    if (next) redirect(next);
     redirect("/profile");
   }
 
   // Email confirmation is ENABLED → show the "check your inbox" page
-  redirect(`/auth/confirm-email?email=${encodeURIComponent(email)}`);
+  const nextParam = next ? `&next=${encodeURIComponent(next)}` : "";
+  redirect(`/auth/confirm-email?email=${encodeURIComponent(email)}${nextParam}`);
 }
 
 export const metadata = { title: "Create Account — PicksProof" };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   const params = await searchParams;
+  const next = getSafeNextPath(params.next);
   const errorKind = params.error === "server" || params.error === "auth" ? params.error : undefined;
   const hasError = Boolean(errorKind);
   const errorMessage = getSignUpErrorMessage(errorKind);
@@ -80,6 +90,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             </div>
           ) : (
             <form action={register} className="grid gap-5">
+              <input name="next" type="hidden" value={next} />
               {hasError && (
                 <div className="rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-bold text-red-800">
                   {errorMessage}
@@ -114,9 +125,9 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
               <p className="text-center text-[0.875rem] text-slate m-0">
                 Already have an account?{" "}
-                <Link href="/login" className="font-bold text-ink">
-                  Sign in
-                </Link>
+                <Suspense fallback={<Link href="/login" className="font-bold text-ink">Sign in</Link>}>
+                  <LoginLink className="font-bold text-ink">Sign in</LoginLink>
+                </Suspense>
               </p>
             </form>
           )}

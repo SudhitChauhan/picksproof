@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { getCategoryNavLabel } from "@/lib/category-visuals";
 import { categories } from "@/lib/data";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import { Logo } from "./Logo";
+import { LoginLink } from "./LoginLink";
+import { RegisterLink } from "./RegisterLink";
 import { UserDropdown } from "./UserDropdown";
 
 async function getHeaderUser() {
@@ -55,9 +58,17 @@ export async function Header() {
             logoutAction={logout}
           />
         ) : (
-          <Link className="btn-primary" href="/login" style={{ padding: "8px 22px", fontSize: "0.88rem" }}>
-            Login
-          </Link>
+          <Suspense
+            fallback={
+              <Link className="btn-primary" href="/login" style={{ padding: "8px 22px", fontSize: "0.88rem" }}>
+                Login
+              </Link>
+            }
+          >
+            <LoginLink className="btn-primary" style={{ padding: "8px 22px", fontSize: "0.88rem" }}>
+              Login
+            </LoginLink>
+          </Suspense>
         )}
       </div>
     </div>

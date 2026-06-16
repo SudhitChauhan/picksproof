@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRight, ChevronRight, Star } from "lucide-react";
+import { ProductImage } from "@/components/ProductImage";
 import { getCategoryIcon } from "@/lib/category-visuals";
 import type { Category } from "@/lib/data";
-import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/products/sitestripe";
 import type { ProductRow } from "@/lib/products/types";
 
 const PREVIEW_LIMIT = 3;
@@ -37,12 +37,10 @@ export function CategoryBrowseSection({ category, products }: CategoryBrowseSect
             href={`/reviews/${product.slug}`}
           >
             <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-canvas">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                alt=""
+              <ProductImage
+                alt={product.name}
                 className="h-full w-full object-cover"
-                loading="lazy"
-                src={product.main_image_url || PRODUCT_IMAGE_PLACEHOLDER}
+                src={product.main_image_url}
               />
             </div>
 

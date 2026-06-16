@@ -1,17 +1,16 @@
 import { z } from "zod";
-import { isValidSiteStripeImageUrl } from "./sitestripe";
+import { isCloudinaryImageUrl, isHttpsImageSource } from "@/lib/cloudinary/urls";
 
 const req = (label: string) => z.string().trim().min(1, `${label} is required.`);
 
 const optionalText = z.string().trim().optional().default("");
 
-/** Empty or Associates SiteStripe image URL only (no Amazon CDN / manual URLs). */
-const siteStripeImageUrl = z
+/** Empty, Cloudinary URL, or any https image source (uploaded to Cloudinary on save). */
+const productImageUrl = z
   .string()
   .trim()
-  .refine((v) => v === "" || isValidSiteStripeImageUrl(v), {
-    message:
-      "Product image must be from SiteStripe (amazon-adsystem.com). Paste SiteStripe HTML and click Extract."
+  .refine((v) => v === "" || isCloudinaryImageUrl(v) || isHttpsImageSource(v), {
+    message: "Enter a valid https image URL or upload an image file."
   });
 const optionalInt = z.preprocess(
   (v) => (v === "" || v === null || v === undefined ? undefined : Number(v)),
@@ -43,7 +42,7 @@ export const productFormSchema = z.object({
     .trim()
     .min(1, "Slug is required.")
     .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens."),
-  mainImageUrl: siteStripeImageUrl,
+  mainImageUrl: productImageUrl,
   amazonAffiliateUrl: z.string().trim().url("Enter a valid Amazon affiliate URL."),
   asin: optionalText,
   brand: optionalText,

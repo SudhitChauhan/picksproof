@@ -1,7 +1,11 @@
 import { Logo } from "@/components/Logo";
+import { LoginLink } from "@/components/LoginLink";
+import { RegisterLink } from "@/components/RegisterLink";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { categories } from "@/lib/data";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
+import { Suspense } from "react";
 
 const currentYear = new Date().getFullYear();
 
@@ -58,12 +62,16 @@ export async function Footer() {
               <>
                 <a href="/profile">My Profile</a>
                 <a href="/wishlist">Wishlist</a>
-                {isAdmin && <a href="/products">Admin Dashboard</a>}
+                {isAdmin && <a href={ADMIN_ROUTES.dashboard}>Admin Dashboard</a>}
               </>
             ) : (
               <>
-                <a href="/login">Sign In</a>
-                <a href="/register">Create Account</a>
+                <Suspense fallback={<a href="/login">Sign In</a>}>
+                  <LoginLink>Sign In</LoginLink>
+                </Suspense>
+                <Suspense fallback={<a href="/register">Create Account</a>}>
+                  <RegisterLink>Create Account</RegisterLink>
+                </Suspense>
               </>
             )}
 

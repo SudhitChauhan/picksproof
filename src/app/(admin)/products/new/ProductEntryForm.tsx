@@ -1,11 +1,16 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { createProductAction } from "@/app/admin/products/new/actions";
+import {
+  createProductAction,
+  importProductsFromJsonAction
+} from "@/app/admin/products/new/actions";
 import { ProductFormBody } from "@/app/(admin)/products/_components/ProductFormBody";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import {
   defaultProductFormValues,
   productFormSchema,
@@ -14,6 +19,7 @@ import {
 } from "@/lib/products/schema";
 
 export function ProductEntryForm() {
+  const router = useRouter();
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -31,6 +37,7 @@ export function ProductEntryForm() {
   });
 
   const watchedName = watch("name");
+  const watchedImageUrl = watch("mainImageUrl");
 
   function handleImportMessage(msg: string, type: "error" | "success") {
     setMessage(msg);
@@ -50,46 +57,61 @@ export function ProductEntryForm() {
         return;
       }
 
-      reset(defaultProductFormValues);
-      setStatus("success");
-      setMessage(`Product saved! ID: ${result.id}`);
+      router.push(`${ADMIN_ROUTES.catalog}?added=1`);
+      router.refresh();
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Could not save product.");
     }
   }
 
+  async function handleBulkImport(jsonText: string) {
+    setStatus("idle");
+    setMessage("");
+
+    const result = await importProductsFromJsonAction(jsonText);
+
+    if (!result.ok) {
+      setStatus("error");
+      setMessage(result.message);
+      return;
+    }
+
+    const summary = `Imported ${result.created} product${result.created === 1 ? "" : "s"}.`;
+    const detail =
+      result.skipped > 0
+        ? ` ${result.skipped} skipped.${result.errors.length ? ` ${result.errors[0]}` : ""}`
+        : "";
+
+    router.push(`${ADMIN_ROUTES.catalog}?imported=${result.created}`);
+    router.refresh();
+
+    setStatus("success");
+    setMessage(summary + detail);
+  }
+
   return (
-    <form className="mx-auto max-w-7xl pb-28" onSubmit={handleSubmit(onSubmit)}>
+    <form className="admin-form" onSubmit={handleSubmit(onSubmit)}>
       {status !== "idle" && (
-        <div
-          className={`mb-6 rounded-3xl border px-5 py-4 text-sm font-bold ${
-            status === "success"
-              ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-              : "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
-          }`}
-        >
-          {message}
-        </div>
+        <div className={`admin-form-alert admin-form-alert--${status}`}>{message}</div>
       )}
 
       <ProductFormBody
         control={control}
         errors={errors}
+        mode="create"
+        onBulkImport={handleBulkImport}
         onImportMessage={handleImportMessage}
         register={register}
         setValue={setValue}
+        watchedImageUrl={watchedImageUrl ?? ""}
         watchedName={watchedName ?? ""}
       />
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-admin-line bg-white/90 px-4 py-4 shadow-2xl backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
-          <p className="text-sm text-admin-muted dark:text-slate-400">Review all fields, then save to Supabase.</p>
-          <button
-            className="inline-flex items-center gap-2 rounded-full bg-[#141413] px-7 py-3 text-sm font-bold text-[#F3F0EE] transition hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
-            disabled={isSubmitting}
-            type="submit"
-          >
+      <div className="admin-form-bar">
+        <div className="admin-form-bar-inner">
+          <p>Review all fields, then save to publish in the catalogue.</p>
+          <button className="btn-primary" disabled={isSubmitting} type="submit">
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             {isSubmitting ? "Saving…" : "Save Product"}
           </button>

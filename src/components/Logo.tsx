@@ -5,8 +5,8 @@ export const LOGO_ALT = "PicksProof — Smart Picks. Proven Choices.";
 
 type LogoProps = {
   href?: string;
-  /** nav = header pill, auth = sign-in pages, footer = dark footer */
-  variant?: "nav" | "auth" | "footer";
+  /** nav = header pill, auth = sign-in pages, footer = dark footer, admin = compact sidebar */
+  variant?: "nav" | "auth" | "footer" | "admin";
   className?: string;
 };
 
@@ -16,9 +16,9 @@ export function Logo({ href = "/", variant = "nav", className = "" }: LogoProps)
     <img
       alt={LOGO_ALT}
       className={`logo-img logo-img--${variant}`}
-      height={variant === "auth" ? 68 : variant === "footer" ? 48 : 44}
+      height={variant === "auth" ? 68 : variant === "footer" ? 48 : variant === "admin" ? 36 : 44}
       src={LOGO_SRC}
-      width={variant === "auth" ? 320 : variant === "footer" ? 260 : 360}
+      width={variant === "auth" ? 320 : variant === "footer" ? 260 : variant === "admin" ? 120 : 360}
     />
   );
 

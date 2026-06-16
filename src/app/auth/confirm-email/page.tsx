@@ -2,24 +2,31 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Mail } from "lucide-react";
 import { SessionPoller } from "@/app/auth/confirm-email/SessionPoller";
+import { getSafeNextPath } from "@/lib/auth/redirect";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
-type Props = { searchParams: Promise<{ email?: string }> };
+type Props = { searchParams: Promise<{ email?: string; next?: string }> };
 
 export const metadata = { title: "Confirm your email — PickProof" };
 export const dynamic = "force-dynamic";
 
 export default async function ConfirmEmailPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const next = getSafeNextPath(params.next);
+
   // If already logged in, skip this page
   if (isSupabaseConfigured()) {
     const supabase = await createServerSupabaseClient();
     const {
       data: { session }
     } = await supabase.auth.getSession();
-    if (session) redirect("/profile");
+    if (session) {
+      if (next) redirect(next);
+      redirect("/profile");
+    }
   }
 
-  const { email } = await searchParams;
+  const { email } = params;
   const maskedEmail = email
     ? email.replace(/^(.{2})(.+)(@.+)$/, (_m, a, _b, c) => `${a}****${c}`)
     : "your inbox";
@@ -79,7 +86,7 @@ export default async function ConfirmEmailPage({ searchParams }: Props) {
           </ol>
 
           {/* Live poller — auto-redirects when session appears */}
-          <SessionPoller />
+          <SessionPoller next={next} />
         </div>
 
         <p style={{ fontSize: "0.875rem", color: "var(--slate)" }}>
@@ -88,7 +95,7 @@ export default async function ConfirmEmailPage({ searchParams }: Props) {
             Register again
           </Link>
           {" · "}
-          <Link href="/login" style={{ fontWeight: 700, color: "var(--ink)" }}>
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} style={{ fontWeight: 700, color: "var(--ink)" }}>
             Sign in instead
           </Link>
         </p>

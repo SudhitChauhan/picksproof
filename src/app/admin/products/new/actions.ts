@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ADMIN_ROUTES } from "@/lib/admin/routes";
+import { ensureProductImageUrl } from "@/lib/cloudinary/upload";
 import { productFormToDbRow } from "@/lib/products/db-map";
+import { amazonJsonToProductForm, parseAmazonJsonInput } from "@/lib/products/amazon-import";
 import {
+  defaultProductFormValues,
   editProductFormSchema,
   productFormSchema,
   type EditProductFormValues,
@@ -29,6 +33,44 @@ async function assertAdmin() {
   return supabase;
 }
 
+async function insertProduct(input: ProductFormValues) {
+  const supabase = await assertAdmin();
+
+  const mainImageUrl = await ensureProductImageUrl(input.mainImageUrl);
+  const row = productFormToDbRow({ ...input, mainImageUrl });
+
+  const { data: product, error: productError } = await supabase
+    .from("products")
+    .insert(row)
+    .select("id")
+    .single<{ id: string }>();
+
+  if (productError || !product) {
+    throw new Error(productError?.message ?? "Could not create product.");
+  }
+
+  const specRows = input.specs.map((spec, i) => ({
+    product_id: product.id,
+    specification_title: spec.specificationTitle,
+    title: spec.title,
+    description: spec.description,
+    sort_order: i
+  }));
+
+  const { error: specError } = await supabase.from("product_specifications").insert(specRows);
+
+  if (specError) {
+    await supabase.from("products").delete().eq("id", product.id);
+    throw new Error(`Specs could not be saved: ${specError.message}`);
+  }
+
+  revalidatePath(ADMIN_ROUTES.dashboard);
+  revalidatePath(ADMIN_ROUTES.catalog);
+  revalidatePath(`/reviews/${input.slug}`);
+
+  return product.id;
+}
+
 // ── Create ────────────────────────────────────────────────────────────────────
 export type CreateResult = { ok: true; id: string } | { ok: false; message: string };
 
@@ -39,43 +81,70 @@ export async function createProductAction(values: ProductFormValues): Promise<Cr
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Check the form and try again." };
   }
 
-  const input = parsed.data;
-
   try {
-    const supabase = await assertAdmin();
-
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .insert(productFormToDbRow(input))
-      .select("id")
-      .single<{ id: string }>();
-
-    if (productError || !product) {
-      return { ok: false, message: productError?.message ?? "Could not create product." };
-    }
-
-    const specRows = input.specs.map((spec, i) => ({
-      product_id: product.id,
-      specification_title: spec.specificationTitle,
-      title: spec.title,
-      description: spec.description,
-      sort_order: i
-    }));
-
-    const { error: specError } = await supabase.from("product_specifications").insert(specRows);
-
-    if (specError) {
-      await supabase.from("products").delete().eq("id", product.id);
-      return { ok: false, message: `Specs could not be saved: ${specError.message}` };
-    }
-
-    revalidatePath("/products");
-    revalidatePath(`/reviews/${input.slug}`);
-
-    return { ok: true, id: product.id };
+    const id = await insertProduct(parsed.data);
+    return { ok: true, id };
   } catch (error) {
     return { ok: false, message: errorMsg(error) };
   }
+}
+
+export type BulkImportResult =
+  | { ok: true; created: number; skipped: number; errors: string[] }
+  | { ok: false; message: string };
+
+export async function importProductsFromJsonAction(jsonText: string): Promise<BulkImportResult> {
+  const items = parseAmazonJsonInput(jsonText);
+
+  if (!items.length) {
+    return { ok: false, message: "No valid JSON products found. Paste an object, an array, or multiple objects separated by blank lines." };
+  }
+
+  let created = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  for (const [index, item] of items.entries()) {
+    const partial = amazonJsonToProductForm(item);
+    const merged: ProductFormValues = {
+      ...defaultProductFormValues,
+      ...partial,
+      name: partial.name || defaultProductFormValues.name,
+      description: partial.description || defaultProductFormValues.description,
+      slug: partial.slug || defaultProductFormValues.slug,
+      category: partial.category || defaultProductFormValues.category,
+      amazonAffiliateUrl: partial.amazonAffiliateUrl || "",
+      mainImageUrl: "",
+      features: partial.features ?? [],
+      specs: partial.specs ?? defaultProductFormValues.specs
+    } as ProductFormValues;
+
+    const parsed = productFormSchema.safeParse(merged);
+    if (!parsed.success) {
+      skipped += 1;
+      const label = partial.name || `Item ${index + 1}`;
+      errors.push(`${label}: ${parsed.error.issues[0]?.message ?? "Invalid product data"}`);
+      continue;
+    }
+
+    try {
+      await insertProduct(parsed.data);
+      created += 1;
+    } catch (error) {
+      skipped += 1;
+      const label = partial.name || `Item ${index + 1}`;
+      errors.push(`${label}: ${errorMsg(error)}`);
+    }
+  }
+
+  if (created === 0) {
+    return {
+      ok: false,
+      message: errors[0] ?? "No products could be imported. Check affiliate URLs and required fields."
+    };
+  }
+
+  return { ok: true, created, skipped, errors };
 }
 
 // ── Update ────────────────────────────────────────────────────────────────────
@@ -93,9 +162,11 @@ export async function updateProductAction(values: EditProductFormValues): Promis
   try {
     const supabase = await assertAdmin();
 
+    const mainImageUrl = await ensureProductImageUrl(input.mainImageUrl);
+
     const { error: productError } = await supabase
       .from("products")
-      .update(productFormToDbRow(input))
+      .update(productFormToDbRow({ ...input, mainImageUrl }))
       .eq("id", input.id);
 
     if (productError) {
@@ -119,7 +190,8 @@ export async function updateProductAction(values: EditProductFormValues): Promis
       return { ok: false, message: `Specs could not be updated: ${specError.message}` };
     }
 
-    revalidatePath("/products");
+    revalidatePath(ADMIN_ROUTES.dashboard);
+    revalidatePath(ADMIN_ROUTES.catalog);
     revalidatePath(`/reviews/${input.slug}`);
 
     return { ok: true };
@@ -133,10 +205,11 @@ export async function deleteProductAction(id: string): Promise<void> {
   try {
     const supabase = await assertAdmin();
     await supabase.from("products").delete().eq("id", id);
-    revalidatePath("/products");
+    revalidatePath(ADMIN_ROUTES.dashboard);
+    revalidatePath(ADMIN_ROUTES.catalog);
   } catch {
     // swallow; client shows optimistic UI or reloads
   }
 
-  redirect("/products");
+  redirect(ADMIN_ROUTES.catalog);
 }

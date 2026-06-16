@@ -1,5 +1,4 @@
 import type { ProductFormValues } from "./schema";
-import { sanitizeSiteStripeImageUrl } from "./sitestripe";
 
 export function productFormToDbRow(input: ProductFormValues) {
   return {
@@ -7,7 +6,7 @@ export function productFormToDbRow(input: ProductFormValues) {
     description: input.description,
     category: input.category,
     slug: input.slug,
-    main_image_url: sanitizeSiteStripeImageUrl(input.mainImageUrl),
+    main_image_url: input.mainImageUrl.trim(),
     amazon_affiliate_url: input.amazonAffiliateUrl,
     asin: input.asin || null,
     brand: input.brand ?? "",
