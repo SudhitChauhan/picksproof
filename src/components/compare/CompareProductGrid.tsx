@@ -1,7 +1,6 @@
 "use client";
 
 import { ProductCard } from "@/components/ProductCard";
-import { getCategoryIcon } from "@/lib/category-visuals";
 import type { CompareProduct } from "@/lib/compare/types";
 import type { ProductRow } from "@/lib/products/types";
 import { useCompare } from "./CompareContext";
@@ -32,7 +31,6 @@ export function CompareProductGrid({ products }: Props) {
           compareDisabled={!isSelected(product.id) && isFull}
           compareMode
           compareSelected={isSelected(product.id)}
-          icon={getCategoryIcon(product.category, 32)}
           key={product.id}
           onCompareToggle={() => toggle(toCompareProduct(product))}
           product={product}
