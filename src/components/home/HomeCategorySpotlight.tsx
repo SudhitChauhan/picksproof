@@ -21,7 +21,7 @@ export function HomeCategorySpotlight({ items }: Props) {
     <section className="pp-section home-spotlight" id="categories">
       <HomeSectionHead
         action={
-          <Link className="btn-outline text-[0.9rem]" href="#categories">
+          <Link className="btn-outline text-[0.9rem]" href="/categories">
             All categories
           </Link>
         }

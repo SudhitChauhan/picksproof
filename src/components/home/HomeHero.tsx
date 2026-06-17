@@ -25,7 +25,7 @@ export function HomeHero() {
           <div aria-hidden className="hero-visual-gradient" />
 
           <div className="hero-visual-copy">
-            <p className="hero-visual-eyebrow">Data-backed affiliate recommendations</p>
+            {/* <p className="hero-visual-eyebrow">Data-backed affiliate recommendations</p> */}
             <h1>
               Choose smarter, buy with <span className="hero-text-gradient">proof</span>.
             </h1>
@@ -41,7 +41,7 @@ export function HomeHero() {
               <Link className="hero-visual-action" href="#how-it-works">
                 How it works
               </Link>
-              <Link className="hero-visual-action" href="#categories">
+              <Link className="hero-visual-action" href="/categories">
                 Categories
               </Link>
             </div>
