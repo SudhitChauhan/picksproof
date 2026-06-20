@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { categories } from "@/lib/data";
-import { HeroLocationBadge } from "./HeroLocationBadge";
 import { HomeHeroSearch } from "./HomeHeroSearch";
 
 const HERO_IMAGE =
@@ -46,8 +45,6 @@ export function HomeHero() {
               </Link>
             </div>
           </div>
-
-          <HeroLocationBadge />
         </div>
 
         <HomeHeroSearch categories={categories} />
