@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { AdminPageHeader } from "@/app/(admin)/_components/AdminPageHeader";
 import { EditProductForm } from "@/app/(admin)/products/[id]/edit/EditProductForm";
 import { ADMIN_ROUTES } from "@/lib/admin/routes";
+import { loadProductFormRelations } from "@/lib/products/intelligence-db";
+import { dbProductToFormInput, type EditProductFormInput } from "@/lib/products/schema";
+import type { ProductRow } from "@/lib/products/types";
 import { PRODUCT_DETAIL_COLUMNS } from "@/lib/products/types";
 import { isAdminUser } from "@/lib/supabase/auth";
 import { createServerSupabaseClient, isSupabaseConfigured } from "@/lib/supabase/server";
@@ -35,11 +38,19 @@ export default async function EditProductPage({ params }: Props) {
 
   if (productError || !product) notFound();
 
-  const { data: specs } = await supabase
-    .from("product_specifications")
-    .select("specification_title, title, description, sort_order")
-    .eq("product_id", id)
-    .order("sort_order", { ascending: true });
+  const relations = await loadProductFormRelations(supabase, id);
+  const formDefaults = {
+    ...dbProductToFormInput(
+      product,
+      relations.specs,
+      relations.intelligence,
+      relations.evidence,
+      relations.prosCons,
+      relations.complaints,
+      relations.personas
+    ),
+    id: product.id
+  } satisfies EditProductFormInput;
 
   return (
     <div className="admin-page admin-page--form">
@@ -47,11 +58,11 @@ export default async function EditProductPage({ params }: Props) {
         <AdminPageHeader
           backHref={ADMIN_ROUTES.catalog}
           backLabel="Back to catalog"
-          description="Update product details, specs, and affiliate links. Changes save to Supabase on submit."
+          description="Update product details, intelligence scores, evidence, and attributes. Changes save to Supabase on submit."
           eyebrow="Edit Product"
           title={product.name}
         />
-        <EditProductForm product={product} specs={specs ?? []} />
+        <EditProductForm formDefaults={formDefaults} product={product as ProductRow} />
       </div>
     </div>
   );

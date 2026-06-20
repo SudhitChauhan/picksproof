@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ExternalLink, Star } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
+import { buildProductHref } from "@/lib/products/search-utils";
 import type { ProductRow } from "@/lib/products/types";
 
 type Spec = {
@@ -147,7 +148,7 @@ function ComparisonProductCard({
       <div className="comparison-board-product-copy">
         {product.brand ? <p className="comparison-board-brand">{product.brand}</p> : null}
         <h3 className="comparison-board-product-name">
-          <Link href={`/reviews/${product.slug}`}>{product.name}</Link>
+          <Link href={buildProductHref(product.slug)}>{product.name}</Link>
         </h3>
         {product.amazon_rating != null ? (
           <p className="comparison-board-rating">
@@ -175,7 +176,7 @@ function ComparisonProductCard({
         ) : null}
         <Link
           className="product-card-btn product-card-btn--ghost comparison-board-btn"
-          href={`/reviews/${product.slug}`}
+          href={buildProductHref(product.slug)}
         >
           <span>View review</span>
           <ArrowRight aria-hidden className="product-card-btn-icon" size={14} />

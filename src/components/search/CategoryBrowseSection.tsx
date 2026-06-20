@@ -3,6 +3,7 @@ import { ArrowRight, ChevronRight, Star } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { getCategoryIcon } from "@/lib/category-visuals";
 import type { Category } from "@/lib/data";
+import { buildProductHref } from "@/lib/products/search-utils";
 import type { ProductRow } from "@/lib/products/types";
 
 const PREVIEW_LIMIT = 3;
@@ -34,7 +35,7 @@ export function CategoryBrowseSection({ category, products }: CategoryBrowseSect
           <Link
             key={product.id}
             className="group flex items-center gap-3.5 rounded-[18px] border border-line bg-lifted p-3.5 transition-[border-color,box-shadow] hover:border-[color-mix(in_srgb,var(--ink)_18%,var(--line))] hover:shadow-[var(--shadow-md)]"
-            href={`/reviews/${product.slug}`}
+            href={buildProductHref(product.slug)}
           >
             <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-canvas">
               <ProductImage

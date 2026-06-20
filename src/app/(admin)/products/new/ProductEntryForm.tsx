@@ -110,7 +110,7 @@ export function ProductEntryForm() {
 
       <div className="admin-form-bar">
         <div className="admin-form-bar-inner">
-          <p>Review all fields, then save to publish in the catalogue.</p>
+          <p>Review product details and intelligence fields, then save to publish.</p>
           <button className="btn-primary" disabled={isSubmitting} type="submit">
             {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             {isSubmitting ? "Saving…" : "Save Product"}

@@ -18,10 +18,22 @@ export type ProductRow = {
   model_name: string;
   warranty: string;
   country_of_origin: string;
+  subcategory: string | null;
+  model: string | null;
+  price: number | null;
+  mrp: number | null;
+  image: string | null;
+  affiliate_url: string | null;
+  launch_date: string | null;
+  updated_at: string;
   created_at: string;
 };
 
 export const PRODUCT_LIST_COLUMNS =
   "id, name, description, category, slug, main_image_url, amazon_affiliate_url, brand, amazon_rating, amazon_review_count, bestseller_rank, bestseller_category" as const;
 
-export const PRODUCT_DETAIL_COLUMNS = `${PRODUCT_LIST_COLUMNS}, asin, features, model_number, model_name, warranty, country_of_origin` as const;
+export const PRODUCT_INTELLIGENCE_COLUMNS =
+  "subcategory, model, price, mrp, image, affiliate_url, launch_date, updated_at" as const;
+
+export const PRODUCT_DETAIL_COLUMNS =
+  `${PRODUCT_LIST_COLUMNS}, asin, features, model_number, model_name, warranty, country_of_origin, created_at, ${PRODUCT_INTELLIGENCE_COLUMNS}` as const;

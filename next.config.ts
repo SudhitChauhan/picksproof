@@ -5,6 +5,15 @@ import { fileURLToPath } from "url";
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/reviews/:slug",
+        destination: "/products/:slug",
+        permanent: true
+      }
+    ];
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "ws-in.amazon-adsystem.com" },
