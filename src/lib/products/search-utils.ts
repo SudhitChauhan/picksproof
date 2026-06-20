@@ -32,6 +32,10 @@ export function isValidCategorySlug(slug: string | undefined) {
   return categories.some((cat) => cat.slug === slug);
 }
 
+export function buildProductHref(slug: string) {
+  return `/products/${slug}`;
+}
+
 export function buildSearchHref({ q, category }: SearchParams) {
   const params = new URLSearchParams();
   const trimmed = q?.trim();

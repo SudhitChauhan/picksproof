@@ -39,7 +39,7 @@ export default async function NewProductPage() {
         <AdminPageHeader
           backHref={ADMIN_ROUTES.catalog}
           backLabel="Back to catalog"
-          description="Import Amazon JSON, upload images to Cloudinary, and publish a new affiliate pick."
+          description="Import Amazon JSON, add intelligence scores, evidence, and attributes — then publish to the catalogue and product detail page."
           eyebrow="Product Manager"
           title="Add a New Product"
         />

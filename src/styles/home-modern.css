@@ -215,7 +215,6 @@
 
 /* Search widget */
 .home-page .hero-search-widget {
-  margin-top: -64px;
   padding: 22px 24px 24px;
   border-radius: 28px;
   background: rgba(252, 251, 250, 0.96);
@@ -872,7 +871,7 @@
 
 @media (max-width: 768px) {
   .home-page .hero-frame {
-    margin: 16px;
+    margin: 36px 16px 16px;
     border-radius: 28px;
   }
 
@@ -886,7 +885,7 @@
   }
 
   .home-page .hero-visual-copy {
-    padding: 32px 24px 96px;
+    padding: 32px 24px 32px;
   }
 
   .home-page .hero-visual-badge {

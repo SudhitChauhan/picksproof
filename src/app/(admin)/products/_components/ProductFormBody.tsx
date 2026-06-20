@@ -25,6 +25,7 @@ import { ProductImage } from "@/components/ProductImage";
 import { uploadProductImageToCloudinary } from "@/lib/cloudinary/client-upload";
 import { isCloudinaryImageUrl } from "@/lib/cloudinary/urls";
 import { amazonJsonToProductForm, parseAmazonJsonInput } from "@/lib/products/amazon-import";
+import { ProductIntelligenceFormSections } from "@/app/(admin)/products/_components/ProductIntelligenceFormSections";
 import { categories } from "@/lib/data";
 import type { ProductFormInput } from "@/lib/products/schema";
 import { isValidHttpsImageUrl, parseSiteStripe, sanitizeRemoteImageUrl } from "@/lib/products/sitestripe";
@@ -299,8 +300,20 @@ export function ProductFormBody({
             {errors.category && <p className={errorCls}>{errors.category.message}</p>}
           </label>
           <label className={labelCls}>
+            Subcategory
+            <input className={inputCls} {...register("subcategory")} placeholder="Air fryers" />
+          </label>
+          <label className={labelCls}>
+            Model
+            <input className={inputCls} {...register("model")} placeholder="NA120/00" />
+          </label>
+          <label className={labelCls}>
             ASIN
             <input className={inputCls} {...register("asin")} placeholder="B0DZCRYG7R" />
+          </label>
+          <label className={labelCls}>
+            Launch date
+            <input className={inputCls} type="date" {...register("launchDate")} />
           </label>
           <div className="md:col-span-2">
             <label className={labelCls}>
@@ -429,18 +442,28 @@ export function ProductFormBody({
         <SectionTitle
           icon={<Link2 className="size-5" />}
           step="4"
-          title="Amazon Affiliate Link"
-          desc="Required for every product. Must include your Associates tag."
+          title="Amazon Affiliate & Pricing"
+          desc="Affiliate link is required. Optional price fields power the detail page pricing card."
         />
-        <label className={labelCls}>
-          Affiliate URL *
-          <input
-            className={inputCls}
-            {...register("amazonAffiliateUrl")}
-            placeholder="https://www.amazon.in/dp/ASIN?tag=yourtag-21"
-          />
-          {errors.amazonAffiliateUrl && <p className={errorCls}>{errors.amazonAffiliateUrl.message}</p>}
-        </label>
+        <div className="grid gap-5 md:grid-cols-2">
+          <label className={`${labelCls} md:col-span-2`}>
+            Affiliate URL *
+            <input
+              className={inputCls}
+              {...register("amazonAffiliateUrl")}
+              placeholder="https://www.amazon.in/dp/ASIN?tag=yourtag-21"
+            />
+            {errors.amazonAffiliateUrl && <p className={errorCls}>{errors.amazonAffiliateUrl.message}</p>}
+          </label>
+          <label className={labelCls}>
+            Current price (₹)
+            <input className={inputCls} step="0.01" type="number" {...register("price")} placeholder="8999" />
+          </label>
+          <label className={labelCls}>
+            MRP (₹)
+            <input className={inputCls} step="0.01" type="number" {...register("mrp")} placeholder="12995" />
+          </label>
+        </div>
       </section>
 
       <section className={cardCls}>
@@ -491,7 +514,7 @@ export function ProductFormBody({
           icon={<FileText className="size-5" />}
           step="6"
           title="Key Features"
-          desc="One feature per line — shown as bullets on the detail page."
+          desc="One feature per line — used as fallback pros when no structured pros are added."
         />
         <textarea
           className={`${textareaCls} min-h-36`}
@@ -508,12 +531,14 @@ export function ProductFormBody({
         />
       </section>
 
+      <ProductIntelligenceFormSections control={control} errors={errors} register={register} />
+
       <section className={cardCls}>
         <SectionTitle
           icon={<Settings2 className="size-5" />}
-          step="7"
-          title="Product Specifications"
-          desc="Grouped specs power the detail table and comparison views."
+          step="11"
+          title="Product Attributes"
+          desc="Grouped attributes power the specifications table and comparison views."
         />
         <div className="mb-3 hidden grid-cols-[1fr_1fr_1.2fr_auto] gap-3 md:grid">
           <span className="admin-form-table-head">Group</span>

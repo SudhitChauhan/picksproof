@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ExternalLink, Star } from "lucide-react";
 import { ProductImage } from "@/components/ProductImage";
 import { getCategory } from "@/lib/data";
+import { buildProductHref } from "@/lib/products/search-utils";
 import type { ProductRow } from "@/lib/products/types";
 
 type CardProduct = Pick<
@@ -51,7 +52,7 @@ export function ProductCard({
           </label>
         ) : null}
 
-        <Link className="product-card-media" href={`/reviews/${p.slug}`}>
+        <Link className="product-card-media" href={buildProductHref(p.slug)}>
           <ProductImage
             alt={p.name}
             className="product-card-image"
@@ -64,7 +65,7 @@ export function ProductCard({
         {categoryLabel ? <p className="product-card-eyebrow">{categoryLabel}</p> : null}
 
         <h3 className="product-card-title">
-          <Link href={`/reviews/${p.slug}`}>{p.name}</Link>
+          <Link href={buildProductHref(p.slug)}>{p.name}</Link>
         </h3>
 
         <div className="product-card-meta">
@@ -94,7 +95,7 @@ export function ProductCard({
               <ExternalLink aria-hidden className="product-card-btn-icon" size={14} />
             </a>
           ) : null}
-          <Link className="product-card-btn product-card-btn--ghost" href={`/reviews/${p.slug}`}>
+          <Link className="product-card-btn product-card-btn--ghost" href={buildProductHref(p.slug)}>
             <span>View review</span>
             <ArrowRight aria-hidden className="product-card-btn-icon" size={14} />
           </Link>

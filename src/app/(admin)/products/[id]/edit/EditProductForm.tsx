@@ -9,23 +9,19 @@ import { updateProductAction } from "@/app/admin/products/new/actions";
 import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { ProductFormBody } from "@/app/(admin)/products/_components/ProductFormBody";
 import {
-  dbProductToFormInput,
   editProductFormSchema,
   type EditProductFormInput,
   type EditProductFormValues,
   type ProductFormInput
 } from "@/lib/products/schema";
+import type { ProductRow } from "@/lib/products/types";
+
 export type EditProductFormProps = {
-  product: Parameters<typeof dbProductToFormInput>[0] & { id: string };
-  specs: {
-    specification_title: string;
-    title: string;
-    description: string;
-    sort_order: number;
-  }[];
+  product: ProductRow;
+  formDefaults: EditProductFormInput;
 };
 
-export function EditProductForm({ product, specs }: EditProductFormProps) {
+export function EditProductForm({ product, formDefaults }: EditProductFormProps) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -39,7 +35,7 @@ export function EditProductForm({ product, specs }: EditProductFormProps) {
     formState: { errors, isSubmitting }
   } = useForm<EditProductFormInput, unknown, EditProductFormValues>({
     resolver: zodResolver(editProductFormSchema),
-    defaultValues: dbProductToFormInput(product, specs) as EditProductFormInput
+    defaultValues: formDefaults
   });
 
   const watchedName = watch("name");
@@ -80,7 +76,7 @@ export function EditProductForm({ product, specs }: EditProductFormProps) {
         control={control as unknown as Control<ProductFormInput>}
         errors={errors as unknown as FieldErrors<ProductFormInput>}
         initialFeaturesText={(product.features ?? []).join("\n")}
-        initialImagePreview={product.main_image_url}
+        initialImagePreview={product.image || product.main_image_url}
         mode="edit"
         onImportMessage={handleImportMessage}
         register={register as unknown as UseFormRegister<ProductFormInput>}

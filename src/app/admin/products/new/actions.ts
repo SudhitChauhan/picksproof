@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ADMIN_ROUTES } from "@/lib/admin/routes";
 import { ensureProductImageUrl } from "@/lib/cloudinary/upload";
+import { buildProductHref } from "@/lib/products/search-utils";
 import { productFormToDbRow } from "@/lib/products/db-map";
+import { saveProductRelatedData } from "@/lib/products/intelligence-db";
 import { amazonJsonToProductForm, parseAmazonJsonInput } from "@/lib/products/amazon-import";
 import {
   defaultProductFormValues,
@@ -49,24 +51,16 @@ async function insertProduct(input: ProductFormValues) {
     throw new Error(productError?.message ?? "Could not create product.");
   }
 
-  const specRows = input.specs.map((spec, i) => ({
-    product_id: product.id,
-    specification_title: spec.specificationTitle,
-    title: spec.title,
-    description: spec.description,
-    sort_order: i
-  }));
-
-  const { error: specError } = await supabase.from("product_specifications").insert(specRows);
-
-  if (specError) {
+  try {
+    await saveProductRelatedData(supabase, product.id, input);
+  } catch (error) {
     await supabase.from("products").delete().eq("id", product.id);
-    throw new Error(`Specs could not be saved: ${specError.message}`);
+    throw error;
   }
 
   revalidatePath(ADMIN_ROUTES.dashboard);
   revalidatePath(ADMIN_ROUTES.catalog);
-  revalidatePath(`/reviews/${input.slug}`);
+  revalidatePath(buildProductHref(input.slug));
 
   return product.id;
 }
@@ -173,26 +167,15 @@ export async function updateProductAction(values: EditProductFormValues): Promis
       return { ok: false, message: productError.message };
     }
 
-    // Replace all specs
-    await supabase.from("product_specifications").delete().eq("product_id", input.id);
-
-    const specRows = input.specs.map((spec, i) => ({
-      product_id: input.id,
-      specification_title: spec.specificationTitle,
-      title: spec.title,
-      description: spec.description,
-      sort_order: i
-    }));
-
-    const { error: specError } = await supabase.from("product_specifications").insert(specRows);
-
-    if (specError) {
-      return { ok: false, message: `Specs could not be updated: ${specError.message}` };
+    try {
+      await saveProductRelatedData(supabase, input.id, input);
+    } catch (error) {
+      return { ok: false, message: errorMsg(error) };
     }
 
     revalidatePath(ADMIN_ROUTES.dashboard);
     revalidatePath(ADMIN_ROUTES.catalog);
-    revalidatePath(`/reviews/${input.slug}`);
+    revalidatePath(buildProductHref(input.slug));
 
     return { ok: true };
   } catch (error) {
